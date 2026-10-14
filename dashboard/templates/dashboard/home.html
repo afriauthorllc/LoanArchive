@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="kpi-grid">
+<div class="kpi"><div class="kpi-label">Active Loans</div><div class="kpi-value green">{{ active_loans_count|default:0 }}</div></div>
+<div class="kpi"><div class="kpi-label">Pending Approvals</div><div class="kpi-value yellow">{{ pending_count|default:0 }}</div></div>
+<div class="kpi"><div class="kpi-label">Today's Collections Due</div><div class="kpi-value blue">UGX {{ todays_due|default:0|intcomma }}</div></div>
+<div class="kpi"><div class="kpi-label">At-Risk Loans</div><div class="kpi-value red">{{ at_risk_count|default:0 }}</div></div>
+</div>
+<div class="card">
+<div class="card-head">
+  <span>Recent Loan Applications & Approvals</span>
+  <a href="{% url 'loans:list' %}" style="color:var(--blue);font-size:11px;font-weight:600;text-decoration:none">View All →</a>
+</div>
+<div class="table-wrap desktop-only"><table><thead><tr><th>CLIENT NAME</th><th>LOAN ID</th><th>AMOUNT</th><th>DATE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
+{% for loan in recent_loans %}
+<tr><td style="font-weight:600">{{ loan.client.full_name }}</td><td>LN-{{ loan.id|stringformat:"04d" }}</td><td>UGX {{ loan.principal_amount|floatformat:0|intcomma }}</td><td>{{ loan.created_at|date:"M d, Y" }}</td><td><span class="status s-{{ loan.status|lower }}">{{ loan.status }}</span></td><td><button class="btn" onclick="window.location.href='/loans/{{ loan.id }}/'">View Details</button></td></tr>
+{% endfor %}
+</tbody></table></div>
+<div class="mobile-cards">
+{% for loan in recent_loans %}
+<div class="m-card" onclick="window.location.href='/loans/{{ loan.id }}/'" style="cursor:pointer"><div class="left"><b>Client Name</b><br><b>Loan ID</b><br><b>Amount</b><br><b>Status</b></div><div class="right">{{ loan.client.full_name }}<br>LN-{{ loan.id|stringformat:"04d" }}<br>UGX {{ loan.principal_amount|floatformat:0|intcomma }}<br><span class="status s-{{ loan.status|lower }}">{{ loan.status }}</span></div><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+{% endfor %}
+</div>
+</div>
+<button class="fab" onclick="window.location.href='/loans/create/'">+ Create New Application</button>
+{% endblock content %}

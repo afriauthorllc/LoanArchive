@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}Loan #{{ loan.id }}{% endblock %}
+{% block content %}
+<style>
+.top-bar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.back{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:white;display:grid;place-items:center;cursor:pointer}
+.head{display:flex;gap:14px;align-items:center}
+.ava{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#e6eefc}
+.ava-ph{width:56px;height:56px;border-radius:50%;background:var(--blue);color:white;display:grid;place-items:center;font-weight:700;font-size:18px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.card{background:white;border:1px solid var(--border);border-radius:12px;padding:14px}
+.label{font-size:10px;text-transform:uppercase;color:#6b7280;letter-spacing:.5px;margin-bottom:6px}
+.value{font-size:18px;font-weight:800;color:#111827}
+.sub{font-size:12px;color:#6b7280;margin-top:4px}
+.prog-wrap{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.bar{height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden;margin:10px 0}
+.fill{height:100%;background:var(--blue);border-radius:99px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.info{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+.info h4{font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:12px;letter-spacing:.5px}
+.row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f6f7f8;font-size:13px}
+.row:last-child{border:none}
+.badge{padding:4px 10px;border-radius:12px;font-size:10px;font-weight:800;color:white}
+.badge-PENDING{background:#f59e0b}.badge-APPROVED{background:#3b82f6}.badge-DISBURSED{background:#059669}.badge-FULLY_PAID{background:#1e4a8a}.badge-REJECTED{background:#6b7280}.badge-DEFAULTED{background:#dc2626}
+.btn{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-blue{background:var(--blue);color:white}
+.btn-outline{background:white;border:1px solid var(--border)}
+@media(max-width:768px){.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+</style>
+
+<div class="top-bar">
+  <div class="back" onclick="history.back()">←</div>
+  <div class="head">
+    {% if client.passport_photo %}<img src="{{ client.passport_photo.url }}" class="ava">
+    {% else %}<div class="ava-ph">{{ client.first_name|first }}{{ client.last_name|first }}</div>{% endif %}
+    <div>
+      <div style="font-weight:800;font-size:16px">{{ client.full_name }}</div>
+      <div style="font-size:12px;color:#6b7280">{{ client.nin }} • {{ client.telephone_number }}</div>
+    </div>
+  </div>
+  <div style="margin-left:auto"><span class="badge badge-{{ loan.status }}">{{ loan.get_status_display }}</span></div>
+</div>
+
+<div class="grid4">
+  <div class="card"><div class="label">Principal</div><div class="value">UGX {{ loan.principal_amount|intcomma }}</div><div class="sub">{{ loan.duration_months }} months @ {{ loan.interest_rate }}%</div></div>
+  <div class="card"><div class="label">Total Payable</div><div class="value">UGX {{ total_due|intcomma }}</div><div class="sub">Principal + Interest</div></div>
+  <div class="card"><div class="label">Total Paid</div><div class="value" style="color:#059669">UGX {{ total_paid|intcomma }}</div><div class="sub">{{ repayments.count }} payments</div></div>
+  <div class="card"><div class="label">Balance</div><div class="value" style="color:{% if balance == 0 %}#059669{% else %}#dc2626{% endif %}">UGX {{ balance|intcomma }}</div><div class="sub">Outstanding</div></div>
+</div>
+
+<div class="prog-wrap">
+  <div style="display:flex;justify-content:space-between;font-size:13px"><span>Repayment Progress</span><b>{{ progress }}%</b></div>
+  <div class="bar"><div class="fill" style="width:{{ progress }}%"></div></div>
+  <div style="font-size:12px;color:#6b7280">{{ total_paid|intcomma }} paid of {{ total_due|intcomma }}</div>
+  {% if loan.status == 'PENDING' and request.user.role != 'FIELD_OFFICER' %}
+  <form method="post" style="margin-top:12px;display:flex;gap:8px">{% csrf_token %}<button name="action" value="approve" class="btn btn-blue">Approve Loan</button></form>
+  {% elif loan.status == 'APPROVED' %}
+  <form method="post" style="margin-top:12px;display:flex;gap:8px">{% csrf_token %}<button name="action" value="disburse" class="btn btn-blue">Mark as Disbursed</button></form>
+  {% endif %}
+</div>
+
+<div class="grid2">
+  <div class="info">
+    <h4>Loan Details</h4>
+    <div class="row"><span>Loan ID</span><b>#{{ loan.id }}</b></div>
+    <div class="row"><span>Branch</span><span>{{ loan.branch.name }}</span></div>
+    <div class="row"><span>Applied At</span><span>{{ loan.applied_at|date:"d M Y" }}</span></div>
+    <div class="row"><span>Created By</span><span>{{ loan.created_by_officer|default:"-" }}</span></div>
+    <div class="row"><span>Reviewed By</span><span>{{ loan.reviewed_by|default:"-" }}</span></div>
+    <div class="row"><span>Disbursed At</span><span>{{ loan.disbursed_at|date:"d M Y"|default:"Not yet" }}</span></div>
+    <div class="row"><span>Actioned At</span><span>{{ loan.actioned_at|date:"d M Y H:i"|default:"-" }}</span></div>
+    <div style="margin-top:10px"><b style="font-size:12px">Collateral:</b><p style="font-size:13px;color:#374151;margin-top:6px;background:#f9fafb;padding:10px;border-radius:8px">{{ loan.collateral_details }}</p></div>
+  </div>
+  <div class="info">
+    <h4>Client Details</h4>
+    <div class="row"><span>Full Name</span><span>{{ client.full_name }}</span></div>
+    <div class="row"><span>Phone</span><span>{{ client.telephone_number }}</span></div>
+    <div class="row"><span>NIN</span><span>{{ client.nin }}</span></div>
+    <div class="row"><span>Village</span><span>{{ client.village }}, {{ client.parish }}</span></div>
+    <div class="row"><span>District</span><span>{{ client.district }}</span></div>
+    <div class="row"><span>Landmark</span><span>{{ client.landmark|default:"-"|truncatechars:40 }}</span></div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <a href="{% url 'clients:detail' client.pk %}" class="btn btn-outline" style="flex:1;text-align:center;text-decoration:none">View Client</a>
+      {% if loan.status == 'DISBURSED' %}<button onclick="openModal()" class="btn btn-blue">Add Repayment</button>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="info">
+  <h4>Repayment History ({{ repayments.count }})</h4>
+  {% for r in repayments %}
+  <div class="row"><span>{{ r.collected_at|date:"d M Y H:i" }} • {{ r.get_payment_mode_display }} {% if r.transaction_reference %}({{ r.transaction_reference }}){% endif %}</span><span><b>UGX {{ r.amount_paid|intcomma }}</b> <span style="font-size:11px;color:#6b7280">by {{ r.collected_by|default:"-" }}</span></span></div>
+  {% empty %}
+  <div style="text-align:center;padding:20px;color:#6b7280;font-size:13px">No repayments yet. Loan must be DISBURSED to collect.</div>
+  {% endfor %}
+</div>
+
+
+<div id="repayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;align-items:center;justify-content:center;padding:16px">
+  <div style="background:white;border-radius:16px;width:100%;max-width:420px;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <b>Add Repayment - Loan #{{ loan.id }}</b>
+      <span onclick="closeModal()" style="cursor:pointer;font-size:20px">×</span>
+    </div>
+    <form method="post" action="{% url 'loans:repay' loan.pk %}">
+      {% csrf_token %}
+      <label style="font-size:12px">Amount (UGX)</label>
+      <input name="amount_paid" type="number" required style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;margin:6px 0 12px">
+      
+      <label style="font-size:12px">Mode</label>
+      <select name="payment_mode" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;margin:6px 0 12px">
+        <option value="CASH">Cash</option>
+        <option value="MOBILE_MONEY">Mobile Money</option>
+        <option value="BANK_TRANSFER">Bank Transfer</option>
+      </select>
+
+      <label style="font-size:12px">Transaction Ref (optional)</label>
+      <input name="transaction_reference" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;margin:6px 0 16px">
+
+      <div style="display:flex;gap:10px">
+        <button type="button" onclick="closeModal()" style="flex:1" class="btn btn-outline">Cancel</button>
+        <button type="submit" style="flex:1" class="btn btn-blue">Save Payment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(){document.getElementById('repayModal').style.display='flex'}
+function closeModal(){document.getElementById('repayModal').style.display='none'}
+</script>
+
+{% endblock %}

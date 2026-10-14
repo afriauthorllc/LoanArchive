@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block title %}My Clients - Loan Archive{% endblock title %}
+{% block content %}
+
+<style>
+.clients-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.clients-title{font-size:20px;font-weight:700;color:var(--blue)}
+.clients-title span{font-size:14px;color:#6b7280;font-weight:400;margin-left:6px}
+.btn-primary{background:var(--blue);color:white;border:none;padding:9px 18px;border-radius:24px;font-size:13px;font-weight:500;cursor:pointer;box-shadow:0 2px 8px rgba(30,74,138,.25)}
+.btn-primary:hover{background:var(--blue-dark)}
+.search-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.search-box{flex:1;min-width:220px;position:relative;background:white;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;padding:0 12px}
+.search-box input{border:none;outline:none;width:100%;padding:11px 8px;font-size:13px;background:transparent}
+.search-box svg{flex-shrink:0;color:#9ca3af}
+.filter-select{background:white;border:1px solid var(--border);border-radius:8px;padding:11px 12px;font-size:13px;min-width:120px}
+.client-table-wrap{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.mobile-client-cards{display:none}
+.m-client{background:white;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer}
+.m-client-name{font-weight:700;font-size:14px;margin-bottom:8px;color:#111827}
+.m-client-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#374151;margin-bottom:6px}
+.m-client-row svg{color:#6b7280}
+.badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;color:white;text-transform:uppercase}
+@media (max-width:768px){
+  .desktop-client-table{display:none!important}
+  .mobile-client-cards{display:block}
+}
+</style>
+
+<div class="clients-header">
+  <div class="clients-title">My Clients <span>({{ clients.count }})</span></div>
+  <button class="btn-primary" onclick="window.location.href='{% url 'clients:add_new_client' %}'">+ New Client</button>
+</div>
+
+<form method="get" class="search-row">
+  <div class="search-box">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search by client name or NIN...">
+  </div>
+</form>
+
+<!-- DESKTOP TABLE -->
+<div class="client-table-wrap desktop-client-table">
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>CLIENT NAME</th><th>PHONE</th><th>NIN</th><th>VILLAGE</th><th>ACTION</th></tr></thead>
+    <tbody>
+      {% for client in clients %}
+      <tr>
+        <td style="font-weight:600">{{ client.full_name }}</td>
+        <td>{{ client.telephone_number }}</td>
+        <td>{{ client.nin }}</td>
+        <td>{{ client.village|default:"-" }}, {{ client.district }}</td>
+        <td><a href="{% url 'clients:detail' client.pk %}" class="btn">View</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" style="text-align:center;padding:20px;color:#6b7280">No clients found</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- MOBILE CARDS -->
+<div class="mobile-client-cards">
+  {% for client in clients %}
+  <div class="m-client" onclick="window.location.href='{% url 'clients:detail' client.pk %}'">
+    <div class="m-client-name">{{ client.full_name }}</div>
+    <div class="m-client-row">📞 {{ client.telephone_number }}</div>
+    <div class="m-client-row">🪪 NIN: {{ client.nin }}</div>
+    <div class="m-client-row">📍 {{ client.village }}, {{ client.district }}</div>
+  </div>
+  {% empty %}
+  <p style="text-align:center;color:#6b7280">No clients yet</p>
+  {% endfor %}
+</div>
+
+{% endblock content %}

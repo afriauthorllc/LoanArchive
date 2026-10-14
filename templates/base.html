@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}{% endblock title %}</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cloudflare.com">
+<style>
+  
+  
+
+        :root {
+            --primary: #0f4c81;
+            --primary-dark: #0a365c;
+            --bg-gray: #f3f4f6;
+            --border-color: #d1d5db;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        
+        .form-container {
+            background: #ffffff;
+            max-width: 650px;
+            margin: 2rem auto;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .form-header {
+            background: var(--primary);
+            color: white;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .form-body { padding: 1.5rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: #374151; }
+        
+        /* Direct widget CSS assignments target */
+        .form-control {
+            width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 0.375rem; font-size: 0.9rem;
+        }
+        .form-control:focus { outline: 2px solid #93c5fd; }
+        .form-control-text { width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 0.375rem; font-size: 0.9rem; font-family: inherit; }
+        .form-input-file { font-size: 0.85rem; margin-top: 0.25rem; }
+        
+        .grid-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; }
+        .btn-submit { background: var(--primary); color: white; border: none; }
+        .btn-submit:hover { background: var(--primary-dark); }
+        .btn-cancel { background: white; color: #4b5563; border: 1px solid #d1d5db; }
+        .errorlist { color: #dc2626; font-size: 0.8rem; margin-top: 0.25rem; list-style: none; }
+
+        @media (max-width: 500px) {
+            .grid-row { grid-template-columns: 1fr; gap: 0; }
+        }
+
+  
+:root{--blue:#1e4a8a;--blue-dark:#163a6b;--blue-light:#e8eef7;--border:#e0e6ed;--bg:#f4f6f9;--green:#2e7d32;--yellow:#b8860b;--red:#c62828}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Roboto',sans-serif}
+body{background:var(--bg);color:#1f2937}
+.icon{width:18px;height:18px;flex-shrink:0}
+.icon-sm{width:16px;height:16px}
+.icon-lg{width:20px;height:20px}
+
+.topbar{background:var(--blue);color:white;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:20}
+.topbar .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+.topbar .user{display:flex;align-items:center;gap:10px;font-size:13px}
+.avatar{width:30px;height:30px;border-radius:50%;background:white;color:var(--blue);display:grid;place-items:center;font-weight:700;font-size:12px}
+.notif{position:relative;display:grid;place-items:center}
+.notif-dot{position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:9px;padding:2px 4px;border-radius:10px;font-weight:700}
+
+.layout{display:flex;min-height:calc(100vh - 56px)}
+.sidebar{width:220px;background:white;border-right:1px solid var(--border);padding-top:8px;flex-shrink:0}
+.side-link{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#4b5563;cursor:pointer;border-left:3px solid transparent}
+.side-link.active{background:var(--blue-light);border-left-color:var(--blue);color:var(--blue);font-weight:500}
+.side-link.active .icon{color:var(--blue)}
+.side-link:hover{background:#f9fafb}
+
+.main{flex:1;padding:18px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:white;border:1px solid var(--border);border-radius:8px;padding:14px}
+.kpi-label{font-size:12px;color:#6b7280;margin-bottom:6px}
+.kpi-value{font-size:18px;font-weight:700;display:flex;align-items:center;gap:6px}
+.kpi-value.green{color:var(--green)} .kpi-value.yellow{color:var(--yellow)} .kpi-value.blue{color:var(--blue-dark)} .kpi-value.red{color:var(--red)}
+
+.card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.card-head{padding:12px 14px;font-weight:500;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;background:#f9fafb;color:#6b7280;font-size:11px;text-transform:uppercase;white-space:nowrap}
+td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
+.status{padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;color:white}
+.s-disbursed{background:#16a34a} .s-pending{background:#2563eb} .s-review{background:#d97706}
+.btn{border:1px solid var(--blue);color:var(--blue);background:white;padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500}
+.btn:hover{background:var(--blue);color:white}
+
+.mobile-cards,.bottom-nav,.fab,.mobile-only{display:none}
+
+@media (max-width:768px){
+  .sidebar,.table-wrap,.desktop-only{display:none!important}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .mobile-cards{display:block}
+  .m-card{background:white;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .m-card .left{font-size:12px;line-height:1.6}
+  .m-card .right{font-size:12px;line-height:1.6}
+  .main{padding-bottom:90px}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);justify-content:space-around;padding:8px 0 10px;z-index:30}
+  .b-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#6b7280;cursor:pointer}
+  .b-item.active{color:var(--blue);font-weight:500}
+  .b-item .icon{width:22px;height:22px}
+  .fab{display:flex;align-items:center;gap:6px;position:fixed;bottom:76px;right:16px;background:var(--blue);color:white;border:none;border-radius:28px;padding:12px 18px;font-size:13px;font-weight:500;box-shadow:0 6px 16px rgba(0,0,0,.25);z-index:25}
+  .mobile-only{display:block}
+  .desktop-title{display:none}
+}
+  .bottom-nav .b-item{
+  text-decoration:none;
+  color:inherit;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.bottom-nav .b-item.active{
+  color:var(--blue);
+  font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<!-- HEADER -->
+<div style="background:#1e4a8a;color:white;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50">
+  <div style="display:flex;align-items:center;gap:8px;font-weight:800">
+    <div style="width:28px;height:28px;background:white;border-radius:6px;display:grid;place-items:center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e4a8a" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    LoanArchive Staff
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;position:relative">
+    <div style="text-align:right;line-height:1.1">
+      <div style="font-size:12px">Hello {{ request.user.first_name|default:"Sarah A." }}</div>
+      <div style="font-size:11px;opacity:.8">({{ request.user.groups.first.name|default:"Field Officer" }})</div>
+    </div>
+
+    <!-- AVATAR -->
+    <div id="profileBtn" onclick="toggleProfile()" style="width:32px;height:32px;background:white;color:#1e4a8a;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;cursor:pointer">
+      SA
+    </div>
+
+    <div style="position:relative">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-6 9-6 9h18s-6-2-6-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;font-size:9px;padding:1px 5px;border-radius:10px">1</span>
+    </div>
+
+    <!-- DROPDOWN -->
+    <div id="profileDrop" style="display:none;position:absolute;top:42px;right:0;width:230px;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid #e5e7eb;overflow:hidden;z-index:99">
+      <div style="padding:12px 14px;border-bottom:1px solid #f3f4f6;background:#f9fafb">
+        <div style="font-size:13px;font-weight:800;color:#111">{{ request.user.get_full_name|default:"Sarah Atuheire" }}</div>
+        <div style="font-size:11px;color:#6b7280">{{ request.user.email|default:"sarah@loanarchive.ug" }}</div>
+      </div>
+
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 9 15a1.65 1.65 0 0 0-1-1.51V13a2 2 0 0 1 4 0v.49c.38.23.66.57 1 1.51z"/></svg>
+        Settings
+      </a>
+
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My Profile
+      </a>
+
+      <div style="height:1px;background:#f3f4f6"></div>
+      
+      <div style="padding:12px 14px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#9ca3af">DEVELOPED BY</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <div style="width:32px;height:32px;background:#1e4a8a;color:white;border-radius:8px;display:grid;place-items:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#111">AfriAuthor</div>
+            <div style="font-size:10px;color:#6b7280">Builds for Africa • v1.0.0</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:#f3f4f6"></div>
+      <a href="{% url 'users:logout' %}" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px;color:#dc2626;text-decoration:none;font-weight:700">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+  Logout
+</a>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleProfile(){
+  let d=document.getElementById('profileDrop');
+  d.style.display = d.style.display==='none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e){
+  let b=document.getElementById('profileBtn');
+  let d=document.getElementById('profileDrop');
+  if(!b.contains(e.target) && !d.contains(e.target)) d.style.display='none';
+});
+</script>
+
+<div class="layout">
+  <!-- SIDEBAR DESKTOP -->
+  <div class="sidebar">
+    <div class="side-link active">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Dashboard
+    </div>
+    <div class="side-link">
+      <a href="{% url 'clients:list' %}" class="b-item {% if 'clients' in request.path %}active{% endif %}">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h4"/><path d="M18 9v4"/></svg>My Clients
+  </a>
+    </div>
+    <div class="side-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Loan Applications
+    </div>
+    <div class="side-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+      Repayments
+    </div>
+    <div class="side-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    {% block content %}
+
+    
+    {% endblock content %}
+    
+<!-- BOTTOM NAV MOBILE -->
+<div class="bottom-nav">
+  <a href="#" class="b-item {% if request.resolver_match.url_name == 'dashboard' or request.path == '/' %}active{% endif %}">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard
+  </a>
+
+  <a href="{% url 'clients:list' %}" class="b-item {% if 'clients' in request.path %}active{% endif %}">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h4"/><path d="M18 9v4"/></svg>My Clients
+  </a>
+
+<!-- BOTTOM NAV MOBILE -->
+<div class="bottom-nav">
+  <a href="{% url 'dashboard:home' %}" class="b-item {% if request.resolver_match.url_name == 'dashboard' or request.path == '/' %}active{% endif %}">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard
+  </a>
+
+  <a href="{% url 'clients:list' %}" class="b-item {% if 'clients' in request.path %}active{% endif %}">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h4"/><path d="M18 9v4"/></svg>My Clients
+  </a>
+
+  <a href="#" class="b-item" style="opacity:0.5" onclick="alert('Repayments coming soon');return false;">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Repayments
+  </a>
+
+  <a href="#" class="b-item" style="opacity:0.5" onclick="alert('Reports coming soon');return false;">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports
+  </a>
+</div></div>
+
+</body>
+</html>

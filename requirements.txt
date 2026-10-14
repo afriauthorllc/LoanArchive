@@ -1,0 +1,9 @@
+Django==6.0.2
+djangorestframework==3.18.1
+gunicorn==26.2.0
+whitenoise==6.12.0
+Pillow==12.3.0
+python-dotenv==1.2.3
+asgiref==3.11.1
+sqlparse==0.5.5
+tzdata==2025.3

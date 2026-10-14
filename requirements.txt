@@ -7,3 +7,4 @@ python-dotenv==1.2.3
 asgiref==3.11.1
 sqlparse==0.5.5
 tzdata==2025.3
+dj-database-url==2.1.0

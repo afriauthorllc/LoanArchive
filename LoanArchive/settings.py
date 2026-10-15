@@ -26,14 +26,10 @@ SECRET_KEY = 'django-insecure-k#db^vt50euu3nbj&o1&668&7y^ju0q&9gm_5*y)_%k74xbf_w
 DEBUG = True
 
 # 🌐 Network Access Configurations for Termux
-ALLOWED_HOSTS = ['*']  # Allows connections from any device on your Wi-Fi
-
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    # ⚠️ Replace the IP address below with the actual IP address of your phone on Wi-Fi:
-    'http://192.168.1.100:8000', 
-]
+CSRF_TRUSTED_ORIGINS = ["https://loanarchive.com", "https://www.loanarchive.com", "https://*.onrender.com"]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'www.loanarchive.com', 'loanarchive.com', 'loanarchive.onrender.com']
+DEBUG = False
 
 
 # Application definition

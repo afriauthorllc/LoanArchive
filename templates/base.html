@@ -145,8 +145,8 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
 
   <div style="display:flex;align-items:center;gap:10px;position:relative">
     <div style="text-align:right;line-height:1.1">
-      <div style="font-size:12px">Hello {{ request.user.first_name|default:"Sarah A." }}</div>
-      <div style="font-size:11px;opacity:.8">({{ request.user.groups.first.name|default:"Field Officer" }})</div>
+      <div style="font-size:12px">Welcome back {{ request.user.first_name|default:request.user.username }}!</div>
+      <div style="font-size:11px;opacity:.8">({{ request.user.get_role_display|default:request.user.role|default:"Staff" }})</div>
     </div>
 
     <!-- AVATAR -->

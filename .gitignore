@@ -1,0 +1,12 @@
+# Database - NEVER push this!
+db.sqlite3
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Env
+.env
+venv/

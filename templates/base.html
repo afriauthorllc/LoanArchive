@@ -162,8 +162,8 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
     <!-- DROPDOWN -->
     <div id="profileDrop" style="display:none;position:absolute;top:42px;right:0;width:230px;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid #e5e7eb;overflow:hidden;z-index:99">
       <div style="padding:12px 14px;border-bottom:1px solid #f3f4f6;background:#f9fafb">
-        <div style="font-size:13px;font-weight:800;color:#111">{{ request.user.get_full_name|default:"Sarah Atuheire" }}</div>
-        <div style="font-size:11px;color:#6b7280">{{ request.user.email|default:"sarah@loanarchive.ug" }}</div>
+        <div style="font-size:13px;font-weight:800;color:#111">{{ request.user.first_name|default:request.user.username }}</div>
+        <div style="font-size:11px;color:#6b7280">{{ request.user.email }}</div>
       </div>
 
       <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">

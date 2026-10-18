@@ -53,6 +53,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -127,46 +128,27 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
-
-# 📂 Termux Shared Storage Overrides
-import django.core.files.locks
-# Force Django's file system manager to treat file locking as a harmless pass
-django.core.files.locks.unlock = lambda f: None
-
-# 📂 Termux Shared Storage Image Upload Patch
-import django.core.files.locks
-
-# Completely disable Django's file-locking mechanism for Android emulated filesystems
-django.core.files.locks.lock = lambda f, flags: True
-django.core.files.locks.unlock = lambda f: True
-
-import os
-from pathlib import Path
-
-# The base URL path used to access files in the browser
-MEDIA_URL = '/media/'
-
-# The absolute filesystem path where files are physically saved on your storage
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-LOGIN_URL = '/users/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/users/login/'
-
-LOGIN_URL = '/users/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/users/login/'
-
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-# Optional - only if DATABASE_URL exists
+# Media files
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+LOGIN_URL = '/users/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/users/login/'
+
+# Database - Use Postgres on Render if available
 import os
+import dj_database_url
 if os.environ.get('DATABASE_URL'):
-    try:
-        import dj_database_url
-        DATABASES['default'] = dj_database_url.config(conn_max_age=600)
-    except:
-        pass
+    DATABASES['default'] = dj_database_url.config(conn_max_age=600, ssl_require=True)
+
+# Termux patch - only run on Android, not on Render Linux
+if 'com.termux' in os.environ.get('PREFIX', '') or '/storage/emulated' in str(BASE_DIR):
+    import django.core.files.locks
+    django.core.files.locks.lock = lambda f, flags: True
+    django.core.files.locks.unlock = lambda f: True

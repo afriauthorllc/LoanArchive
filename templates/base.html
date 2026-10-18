@@ -154,11 +154,46 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
       SA
     </div>
 
-    <div style="position:relative">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-6 9-6 9h18s-6-2-6-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;font-size:9px;padding:1px 5px;border-radius:10px">1</span>
-    </div>
+    <!-- NEW BELL BUTTON - looks like your SVG div, but works -->
+<div id="bellBtn" onclick="toggleBell()" style="position:relative; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.1);">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-6 9-6 9h18s-6-2-6-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+  {% if unread_count > 0 %}
+<span style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;font-size:9px;padding:2px 6px;border-radius:10px;line-height:1.2;font-weight:700; border:2px solid #1e4a8a;">{{ unread_count }}</span>
+  {% endif %}
+</div>
 
+<!-- NOTIFICATION DROPDOWN - LIKE SCREENSHOT -->
+<div id="notifDrop" style="display:none; position:absolute; top:42px; right:0; width:230px; background:white; border-radius:16px; box-shadow:0 12px 30px rgba(0,0,0,.20); border:1px solid #e5e7eb; overflow:hidden; z-index:100;">
+
+  <!-- Header Mark all read -->
+  <div style="padding:10px 16px; display:flex; justify-content:flex-end;">
+    <a href="{% url 'notifications:mark_all_read' %}" style="color:#5b21b6; font-weight:700; font-size:14px; text-decoration:underline;">Mark all read</a>
+  </div>
+
+  <!-- List -->
+  <div style="max-height:300px; overflow-y:auto;">
+    {% for n in recent_notifications %}
+    <a href="{{ n.link|default:'#' }}" style="display:block; padding:12px 16px; text-decoration:none; border-bottom:1px solid #f9fafb;">
+      <div style="font-weight:800; font-size:14px; color:#111827; line-height:1.2;">{{ n.title }}</div>
+      <div style="font-size:13px; color:#6b7280; margin-top:2px; line-height:1.3;">{{ n.message|truncatechars:45 }}</div>
+    </a>
+    {% empty %}
+    <div style="padding:20px; text-align:center; font-size:13px; color:#9ca3af;">No new notifications</div>
+    {% endfor %}
+  </div>
+
+  <!-- Footer View all -->
+  <div style="padding:10px; text-align:center; border-top:1px solid #f3f4f6;">
+    <a href="{% url 'notifications:list' %}" style="color:#1e4a8a; font-size:14px; text-decoration:none; font-weight:500;">View all</a>
+  </div>
+</div>
+
+      
+      
+      
     <!-- DROPDOWN -->
     <div id="profileDrop" style="display:none;position:absolute;top:42px;right:0;width:230px;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid #e5e7eb;overflow:hidden;z-index:99">
       <div style="padding:12px 14px;border-bottom:1px solid #f3f4f6;background:#f9fafb">
@@ -205,11 +240,29 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
 function toggleProfile(){
   let d=document.getElementById('profileDrop');
   d.style.display = d.style.display==='none' ? 'block' : 'none';
+  // close bell if open
+  let b=document.getElementById('notifDrop');
+  if(b) b.style.display='none';
+}
+function toggleBell(){
+  let d=document.getElementById('notifDrop');
+  d.style.display = d.style.display==='none' ? 'block' : 'none';
+  // close profile if open
+  let p=document.getElementById('profileDrop');
+  if(p) p.style.display='none';
 }
 document.addEventListener('click', function(e){
-  let b=document.getElementById('profileBtn');
-  let d=document.getElementById('profileDrop');
-  if(!b.contains(e.target) && !d.contains(e.target)) d.style.display='none';
+  let pb=document.getElementById('profileBtn');
+  let pd=document.getElementById('profileDrop');
+  let bb=document.getElementById('bellBtn');
+  let nd=document.getElementById('notifDrop');
+  
+  if(pb && pd && !pb.contains(e.target) && !pd.contains(e.target)){
+    pd.style.display='none';
+  }
+  if(bb && nd && !bb.contains(e.target) && !nd.contains(e.target)){
+    nd.style.display='none';
+  }
 });
 </script>
 

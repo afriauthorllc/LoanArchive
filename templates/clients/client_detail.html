@@ -21,6 +21,17 @@
 .btn-blue{background:var(--blue);color:white}
 .btn-outline{background:white;border:1px solid var(--border)}
 @media(max-width:768px){.grid2{grid-template-columns:1fr}}
+
+/* Modal - matches your UI */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;justify-content:center;align-items:flex-start;padding:20px 12px;overflow-y:auto}
+.modal-overlay.active{display:flex}
+.modal-box{background:white;border:1px solid var(--border);border-radius:12px;width:100%;max-width:420px;padding:16px;animation:slideUp .2s ease}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.input-group{margin-bottom:12px}
+.input-group label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:white}
+.input:focus{border-color:var(--blue)}
 </style>
 
 <div class="top">
@@ -46,7 +57,6 @@
     <div class="row"><span>Phone</span><span>{{ client.telephone_number }}</span></div>
     <div class="row"><span>Alt Phone</span><span>{{ client.alternative_number|default:"-" }}</span></div>
     <div class="row"><span>NIN</span><span>{{ client.nin }}</span></div>
-    
   </div>
   <div class="card">
     <h4>Location & Branch</h4>
@@ -62,10 +72,10 @@
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <h4 style="margin:0">Loans ({{ client.loans.count }})</h4>
-    <a href="{% url 'loans:list' %}?client={{ client.pk }}" class="btn btn-blue">+ New Loan</a>
+    <button onclick="openLoanModal()" class="btn btn-blue">+ New Loan</button>
   </div>
   {% for loan in client.loans.all %}
-  <div class="loan-item" onclick="window.location.href='{% url 'clients:detail' client.pk %}'" style="cursor:pointer">
+  <div class="loan-item" onclick="window.location.href='{% url 'loans:detail' loan.pk %}'" style="cursor:pointer">
     <div>
       <div style="font-weight:700;font-size:14px">Loan #{{ loan.id }} - UGX {{ loan.principal_amount|intcomma }}</div>
       <div style="font-size:12px;color:#6b7280">{{ loan.applied_at|date:"d M Y" }} • {{ loan.duration_months }} months • {{ loan.interest_rate }}%</div>
@@ -79,5 +89,57 @@
   <div style="text-align:center;padding:20px;color:#6b7280">No loans yet for this client</div>
   {% endfor %}
 </div>
+
+<!-- LOAN MODAL -->
+<div id="loanModal" class="modal-overlay" onclick="if(event.target==this) closeLoanModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h4 style="margin:0">New Loan Application</h4>
+      <div class="back" onclick="closeLoanModal()">×</div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">For {{ client.full_name }} • Will be saved as <b>PENDING</b></div>
+    
+    <form method="POST" action="/clients/{{ client.pk }}/add-loan/">
+      {% csrf_token %}
+      
+      <div class="input-group">
+        <label>Principal Amount (UGX) *</label>
+        <input type="number" name="principal_amount" class="input" required min="1000" step="1000" placeholder="e.g. 1000000">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="input-group">
+          <label>Duration (Months) *</label>
+          <select name="duration_months" class="input" required>
+            <option value="1">1 Month</option>
+            <option value="3">3 Months</option>
+            <option value="6" selected>6 Months</option>
+            <option value="12">12 Months</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Interest Rate (%) *</label>
+          <input type="number" name="interest_rate" class="input" required value="10.00" step="0.01">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Collateral Details *</label>
+        <textarea name="collateral_details" class="input" rows="3" required placeholder="e.g., Motorcycle Logbook UBG 123X, Land agreement in..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button type="button" onclick="closeLoanModal()" class="btn btn-outline" style="flex:1">Cancel</button>
+        <button type="submit" class="btn btn-blue" style="flex:1">Create as Pending</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openLoanModal(){ document.getElementById('loanModal').classList.add('active'); document.body.style.overflow='hidden'; }
+function closeLoanModal(){ document.getElementById('loanModal').classList.remove('active'); document.body.style.overflow=''; }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLoanModal(); });
+</script>
 
 {% endblock %}

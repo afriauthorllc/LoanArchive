@@ -146,12 +146,13 @@ class RepaymentInline(admin.TabularInline):
 
 @admin.register(Repayment)
 class RepaymentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_client_name', 'loan_link', 'amount_formatted', 'payment_mode', 'collected_by', 'collected_at')
+    list_display = ('book_number', 'get_client_name', 'loan_link', 'amount_formatted', 'payment_mode', 'collected_by', 'collected_at')
+    list_display_links = ('book_number',)
     list_filter = ('payment_mode', 'collected_at', 'loan__branch')
-    search_fields = ('loan__id', 'loan__client__first_name', 'loan__client__last_name', 'transaction_reference')
+    search_fields = ('book_number', 'loan__id', 'loan__client__first_name', 'loan__client__last_name', 'transaction_reference')
     
-    # Simple form separation
-    fields = ('loan', 'amount_paid', 'payment_mode', 'transaction_reference', 'collected_by', 'collected_at')
+    # Simple form separation - book_number must be editable
+    fields = ('book_number', 'loan', 'amount_paid', 'payment_mode', 'transaction_reference', 'collected_by', 'collected_at')
     readonly_fields = ('collected_by', 'collected_at')
 
     def get_client_name(self, obj):
@@ -171,7 +172,6 @@ class RepaymentAdmin(admin.ModelAdmin):
         if not change and not obj.collected_by:
             obj.collected_by = request.user
         super().save_model(request, obj, form, change)
-        
         
         
         

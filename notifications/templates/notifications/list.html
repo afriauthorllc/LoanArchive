@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-4 max-w-3xl mx-auto">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-2xl font-bold">Notifications</h2>
+<a href="{% url 'notification_mark_all_read' %}" class="text-blue-600 text-sm">Mark all as read</a>
+</div>
+{% for n in notifications %}
+<div class="bg-white p-4 border rounded-lg mb-3 shadow-sm {% if not n.is_read %}border-l-4 border-l-blue-500 bg-blue-50{% endif %}">
+  <div class="flex justify-between">
+    <h3 class="font-semibold">{{ n.title }}</h3>
+    {% if not n.is_read %}<a href="{% url 'notification_mark_read' n.id %}" class="text-xs bg-blue-600 text-white px-2 py-1 rounded">Mark read</a>{% endif %}
+  </div>
+  <p class="text-gray-700 mt-1">{{ n.message }}</p>
+  <small class="text-gray-400">{{ n.created_at|date:"M d, Y H:i" }}</small>
+</div>
+{% empty %}
+<div class="bg-white p-8 text-center rounded">
+<p class="text-gray-500">No notifications yet</p>
+</div>
+{% endfor %}
+</div>
+{% endblock %}

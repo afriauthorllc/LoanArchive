@@ -1,99 +1,60 @@
-{% extends 'base.html' %}
-        
-</head>
-<body>
-    {% block content %}
-    <div class="form-container">
-        <div class="form-header">
-            <i class="fa-solid fa-user-plus text-xl"></i>
-            <div>
-                <h2 style="font-size: 1.1rem; font-weight: 700;">Client KYC Registration Form</h2>
-                <p style="font-size: 0.7rem; color: #93c5fd;">Fill out details matching official government documentation.</p>
-            </div>
-        </div>
-        
-        <!-- ⚠️ enctype="multipart/form-data" IS MANDATORY TO UPLOAD THE PASSPORT IMAGE FILES -->
-        <form method="POST" enctype="multipart/form-data" class="form-body">
-            {% csrf_token %}
-            
-            {% if form.non_field_errors %}
-                <div style="background: #fef2f2; border: 1px solid #fca5a5; padding: 0.75rem; border-radius: 0.375rem; margin-bottom: 1rem; color: #b91c1c; font-size: 0.85rem;">
-                    {{ form.non_field_errors }}
-                </div>
-            {% endif %}
+{% extends "base.html" %}
+{% block content %}
+<style>
+.form-card{background:white;border-radius:12px;padding:18px;border:1px solid var(--border)}
+.input-group{margin-bottom:14px}
+.input-group label{font-size:12px;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px}
+.input{width:100%;padding:11px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none}
+.input:focus{border-color:#2563eb;box-shadow:0 0 0 2px #dbeafe}
+</style>
 
-            <div class="form-group">
-                <label><i class="fa-solid fa-camera mr-1"></i> Passport Photo Upload</label>
-                {{ form.passport_photo }}
-                {{ form.passport_photo.errors }}
-            </div>
+<div class="form-card">
+<div style="background:#1e3a8a;color:white;padding:16px;border-radius:10px;margin:-18px -18px 18px -18px">
+  <h3 style="margin:0">Client KYC Registration Form</h3>
+  <p style="margin:4px 0 0;font-size:12px;opacity:0.8">Fill out details matching official government documentation.</p>
+</div>
 
-            <div class="grid-row">
-                <div class="form-group">
-                    <label>First Name</label>
-                    {{ form.first_name }}
-                    {{ form.first_name.errors }}
-                </div>
-                <div class="form-group">
-                    <label>Last Name</label>
-                    {{ form.last_name }}
-                    {{ form.last_name.errors }}
-                </div>
-            </div>
+<form method="POST" enctype="multipart/form-data">
+{% csrf_token %}
 
-            <div class="grid-row">
-                <div class="form-group">
-                    <label><i class="fa-solid fa-id-card mr-1"></i> National ID Number (NIN)</label>
-                    {{ form.nin }}
-                    {{ form.nin.errors }}
-                </div>
-                <div class="form-group">
-                    <label><i class="fa-solid fa-phone mr-1"></i> Telephone Contact</label>
-                    {{ form.telephone_number }}
-                    {{ form.telephone_number.errors }}
-                </div>
-            </div>
+<div class="input-group">
+  <label>Passport Photo Upload</label>
+  <input type="file" name="passport_photo" class="input" accept="image/*">
+</div>
 
-            <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; color: var(--primary); margin: 1rem 0 0.5rem 0; border-bottom: 1px dashed #d1d5db; padding-bottom: 0.25rem;">Physical Address Location Mapping</h3>
+{% if can_choose_branch %}
+<div class="input-group">
+  <label>Branch *</label>
+  <select name="branch" class="input" required>
+    <option value="">-- Select Branch --</option>
+    {% for b in branches %}
+      <option value="{{ b.id }}">{{ b.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% else %}
+  {% if user_branch %}
+  <div class="input-group">
+    <label>Branch (Auto-assigned)</label>
+    <input type="text" class="input" value="{{ user_branch.name }}" disabled style="background:#f3f4f6">
+  </div>
+  {% endif %}
+{% endif %}
 
-            <div class="grid-row">
-                <div class="form-group">
-                    <label>District</label>
-                    {{ form.district }}
-                    {{ form.district.errors }}
-                </div>
-                <div class="form-group">
-                    <label>Sub-County</label>
-                    {{ form.sub_county }}
-                    {{ form.sub_county.errors }}
-                </div>
-            </div>
+<div class="input-group"><label>First Name *</label><input type="text" name="first_name" class="input" required placeholder="e.g. Peter"></div>
+<div class="input-group"><label>Last Name *</label><input type="text" name="last_name" class="input" required placeholder="e.g. Okello"></div>
+<div class="input-group"><label>National ID Number (NIN) *</label><input type="text" name="nin" class="input" required placeholder="CM000000..."></div>
+<div class="input-group"><label>Telephone Contact *</label><input type="tel" name="telephone_number" class="input" required placeholder="07..."></div>
 
-            <div class="grid-row">
-                <div class="form-group">
-                    <label>Parish</label>
-                    {{ form.parish }}
-                    {{ form.parish.errors }}
-                </div>
-                <div class="form-group">
-                    <label>Village</label>
-                    {{ form.village }}
-                    {{ form.village.errors }}
-                </div>
-            </div>
+<h4 style="color:#1e3a8a;font-size:12px;margin:20px 0 12px;border-bottom:1px dashed #d1d5db;padding-bottom:6px">PHYSICAL ADDRESS LOCATION MAPPING</h4>
 
-            <div class="form-group">
-                <label>Physical Landmark / Directions</label>
-                {{ form.landmark }}
-                {{ form.landmark.errors }}
-            </div>
+<div class="input-group"><label>District</label><input type="text" name="district" class="input" placeholder="e.g. Gulu"></div>
+<div class="input-group"><label>Sub-County</label><input type="text" name="sub_county" class="input"></div>
+<div class="input-group"><label>Parish</label><input type="text" name="parish" class="input"></div>
+<div class="input-group"><label>Village</label><input type="text" name="village" class="input"></div>
+<div class="input-group"><label>Physical Landmark / Directions</label><textarea name="landmark" class="input" rows="2" placeholder="Near..."></textarea></div>
 
-            <div class="form-actions">
-                <a href="{% url 'dashboard:home' %}" class="btn btn-cancel">Cancel</a>
-                <button type="submit" class="btn btn-submit"><i class="fa-solid fa-cloud-arrow-up"></i> Save Profile</button>
-            </div>
-        </form>
-    </div>
-{% endblock content %}
-</body>
-
+<button type="submit" style="width:100%;padding:12px;background:#2563eb;color:white;border:none;border-radius:8px;font-weight:700;margin-top:10px">Save Client</button>
+</form>
+</div>
+{% endblock %}

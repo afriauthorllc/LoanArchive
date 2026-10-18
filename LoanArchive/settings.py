@@ -23,14 +23,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-k#db^vt50euu3nbj&o1&668&7y^ju0q&9gm_5*y)_%k74xbf_w'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # 🌐 Network Access Configurations for Termux
 CSRF_TRUSTED_ORIGINS = ["https://loanarchive.com", "https://www.loanarchive.com", "https://*.onrender.com"]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'www.loanarchive.com', 'loanarchive.com', 'loanarchive.onrender.com']
-DEBUG = False
-
 
 # Application definition
 
@@ -42,7 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    
+    'notifications.apps.NotificationsConfig',
     # Your apps - add ALL
     'dashboard',
     'users',      # <- REQUIRED for your AUTH_USER_MODEL
@@ -55,10 +53,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    #'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -74,6 +71,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'notifications.context_processors.unread_count',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],

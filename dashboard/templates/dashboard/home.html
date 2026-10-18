@@ -7,6 +7,7 @@
 <div class="kpi"><div class="kpi-label">Today's Collections Due</div><div class="kpi-value blue">UGX {{ todays_due|default:0|intcomma }}</div></div>
 <div class="kpi"><div class="kpi-label">At-Risk Loans</div><div class="kpi-value red">{{ at_risk_count|default:0 }}</div></div>
 </div>
+
 <div class="card">
 <div class="card-head">
   <span>Recent Loan Applications & Approvals</span>
@@ -23,5 +24,118 @@
 {% endfor %}
 </div>
 </div>
-<button class="fab" onclick="window.location.href='/loans/create/'">+ Create New Application</button>
+
+<button class="fab" onclick="openGlobalLoanModal()">+ Create New Application</button>
+
+<style>
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;justify-content:center;align-items:flex-start;padding:20px 12px;overflow-y:auto}
+.modal-overlay.active{display:flex}
+.modal-box{background:white;border:1px solid var(--border);border-radius:12px;width:100%;max-width:440px;padding:16px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.back{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;display:grid;place-items:center;cursor:pointer;font-size:18px}
+.input-group{margin-bottom:12px;position:relative}
+.input-group label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;display:block;margin-bottom:6px}
+.input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:white}
+.client-results{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;z-index:9999;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.client-opt{padding:12px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.client-opt:hover{background:#eef2ff}
+.btn-modal{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-blue{background:var(--blue);color:white}
+.btn-outline{background:white;border:1px solid var(--border)}
+</style>
+
+<div id="globalLoanModal" class="modal-overlay" onclick="if(event.target==this) closeGlobalLoanModal()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h4 style="margin:0;font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase">New Loan Application</h4>
+      <div class="back" onclick="closeGlobalLoanModal()">×</div>
+    </div>
+    <form method="POST" action="{% url 'loans:create_application' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <div class="input-group">
+        <label>SEARCH & SELECT CLIENT *</label>
+        <input type="text" id="clientSearchInput" class="input" placeholder="Type Peter, Grace..." autocomplete="off" required>
+        <input type="hidden" name="client_id" id="selectedClientId" required>
+        <div id="clientResults" class="client-results"></div>
+        <div id="selectedClientPreview" style="font-size:12px;color:#059669;margin-top:6px;display:none;font-weight:700"></div>
+      </div>
+      <div class="input-group"><label>Principal Amount (UGX) *</label><input type="number" name="principal_amount" class="input" required min="1000" placeholder="e.g. 1000000"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="input-group"><label>Duration (Months) *</label><select name="duration_months" class="input" required><option value="1">1 Month</option><option value="3">3 Months</option><option value="6" selected>6 Months</option><option value="12">12 Months</option></select></div>
+        <div class="input-group"><label>Interest Rate (%) *</label><input type="number" name="interest_rate" class="input" required value="10.00" step="0.01"></div>
+      </div>
+      <div class="input-group"><label>Collateral Details *</label><textarea name="collateral_details" class="input" rows="3" required placeholder="Motorcycle Logbook..."></textarea></div>
+      <div style="display:flex;gap:8px;margin-top:16px"><button type="button" onclick="closeGlobalLoanModal()" class="btn-modal btn-outline" style="flex:1">Cancel</button><button type="submit" class="btn-modal btn-blue" style="flex:1">Add as Pending</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+// FIXED: removed client_code - your model only has nin
+let ALL_CLIENTS = [
+  {% for c in all_clients %}
+    {id: {{ c.id }}, name: "{{ c.full_name|escapejs }}", code: "{{ c.nin|default:''|escapejs }}", phone: "{{ c.telephone_number|default:''|escapejs }}"},
+  {% endfor %}
+];
+
+function openGlobalLoanModal(){document.getElementById('globalLoanModal').classList.add('active');document.body.style.overflow='hidden';}
+function closeGlobalLoanModal(){document.getElementById('globalLoanModal').classList.remove('active');document.body.style.overflow='';document.getElementById('clientResults').style.display='none';}
+
+const sInput=document.getElementById('clientSearchInput');
+const rBox=document.getElementById('clientResults');
+const hId=document.getElementById('selectedClientId');
+const prev=document.getElementById('selectedClientPreview');
+let timer;
+
+function showClients(list, q){
+  rBox.innerHTML='';
+  if(list.length===0){
+    rBox.innerHTML='<div style="padding:12px;color:#6b7280;font-size:13px">No clients for "'+q+'" ('+ALL_CLIENTS.length+' in memory)</div>';
+  }else{
+    list.forEach(c=>{
+      const div=document.createElement('div');
+      div.className='client-opt';
+      div.innerHTML=`<div style="font-weight:700;font-size:13px">${c.name}</div><div style="font-size:11px;color:#6b7280">${c.code} • ${c.phone}</div>`;
+      div.onclick=()=>{hId.value=c.id;sInput.value=c.name;prev.textContent='✓ Selected: '+c.name;prev.style.display='block';rBox.style.display='none';};
+      rBox.appendChild(div);
+    });
+  }
+  rBox.style.display='block';
+}
+
+sInput.addEventListener('input',function(){
+  const q=this.value.trim();
+  hId.value=''; prev.style.display='none';
+  if(q.length<1){rBox.style.display='none';return;}
+  clearTimeout(timer);
+  
+  if(ALL_CLIENTS.length>0){
+    const filtered = ALL_CLIENTS.filter(c => c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.toLowerCase().includes(q.toLowerCase()) || c.code.toLowerCase().includes(q.toLowerCase())).slice(0,20);
+    showClients(filtered,q);
+    return;
+  }
+  
+  timer=setTimeout(async()=>{
+    try{
+      const res = await fetch(`/clients/api/search/?q=${encodeURIComponent(q)}`, {
+        credentials: 'same-origin',
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+      });
+      const text = await res.text();
+      if(text.trim().startsWith('<')){
+        console.log("API returned HTML:", text.slice(0,500));
+        rBox.innerHTML='<div style="padding:12px;color:red;font-size:11px">API returned HTML (login? 404?). <a href="/clients/api/search/?q='+encodeURIComponent(q)+'" target="_blank">Open API directly</a></div>';
+        rBox.style.display='block';
+        return;
+      }
+      const data = JSON.parse(text);
+      showClients(data,q);
+    }catch(e){
+      rBox.innerHTML='<div style="padding:12px;color:red;font-size:12px">API error: '+e+'</div>';
+      rBox.style.display='block';
+    }
+  },300);
+});
+</script>
 {% endblock content %}

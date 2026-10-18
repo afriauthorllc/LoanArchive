@@ -1,61 +1,30 @@
-{% extends "base.html" %}
-{% load humanize %}
-{% block title %}All Loans{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+<title>Loans</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
-.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
-.tab{padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:white;font-size:12px;font-weight:600;white-space:nowrap;text-decoration:none;color:#374151}
-.tab.active{background:var(--blue);color:white;border-color:var(--blue)}
-.search{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:white;border:1px solid var(--border);border-radius:8px;padding:0 12px}
-.search input{border:none;outline:none;width:100%;padding:11px 0;font-size:13px}
-.table-wrap{background:white;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.m-card{display:none}
-@media(max-width:768px){.desktop{display:none!important}.m-card{display:block}}
-.badge{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800;color:white}
-.badge-PENDING{background:#f59e0b}.badge-APPROVED{background:#3b82f6}.badge-DISBURSED{background:#059669}.badge-FULLY_PAID{background:#1e4a8a}.badge-REJECTED{background:#6b7280}.badge-DEFAULTED{background:#dc2626}
+body{font-family:sans-serif;padding:12px}
+.card{border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:8px}
+a{text-decoration:none;color:#0d6efd}
+.badge{background:#198754;color:white;padding:2px 6px;border-radius:4px;font-size:12px}
 </style>
+</head>
+<body>
+<h3>Loans {% if request.GET.client %}for Client #{{ request.GET.client }}{% endif %}</h3>
 
-<div class="head">
-  <div style="font-weight:800;font-size:18px">Loan Applications <span style="font-weight:400;font-size:13px;color:#6b7280">({{ all_count }})</span></div>
-  <form method="get" class="search"><input type="text" name="q" value="{{ search_q }}" placeholder="Search client / NIN..."><button style="border:none;background:transparent">🔍</button></form>
-</div>
+<a href="/dashboard/">← Dashboard</a> | <a href="/loans/">All Loans</a>
 
-<div class="tabs">
-  <a href="{% url 'loans:list' %}" class="tab {% if not status_filter %}active{% endif %}">All</a>
-  <a href="?status=PENDING" class="tab {% if status_filter == 'PENDING' %}active{% endif %}">Pending</a>
-  <a href="?status=APPROVED" class="tab {% if status_filter == 'APPROVED' %}active{% endif %}">Approved</a>
-  <a href="?status=DISBURSED" class="tab {% if status_filter == 'DISBURSED' %}active{% endif %}">Active</a>
-  <a href="?status=FULLY_PAID" class="tab {% if status_filter == 'FULLY_PAID' %}active{% endif %}">Fully Paid</a>
-  <a href="?status=DEFAULTED" class="tab {% if status_filter == 'DEFAULTED' %}active{% endif %}">Defaulted</a>
-</div>
-
-<div class="table-wrap desktop">
-<table style="width:100%;border-collapse:collapse">
-<thead style="background:#f9fafb;text-align:left"><tr style="font-size:11px;color:#6b7280"><th style="padding:12px">CLIENT</th><th>AMOUNT</th><th>PAYABLE</th><th>STATUS</th><th>DATE</th><th>ACTION</th></tr></thead>
-<tbody>
 {% for loan in loans %}
-<tr style="border-top:1px solid #f3f4f6;font-size:13px">
-<td style="padding:12px;font-weight:600">{{ loan.client.full_name }}<br><span style="font-size:11px;color:#6b7280">{{ loan.client.nin }}</span></td>
-<td>UGX {{ loan.principal_amount|intcomma }}</td>
-<td>UGX {{ loan.total_payable|intcomma }}</td>
-<td><span class="badge badge-{{ loan.status }}">{{ loan.get_status_display }}</span></td>
-<td>{{ loan.applied_at|date:"d M" }}</td>
-<td><a href="{% url 'loans:loan_detail' loan.pk %}" style="color:var(--blue);font-weight:600;text-decoration:none">View</a></td>
-</tr>
-{% empty %}<tr><td colspan="6" style="padding:20px;text-align:center;color:#6b7280">No loans found</td></tr>{% endfor %}
-</tbody>
-</table>
+<div class="card">
+  <strong><a href="/loans/{{ loan.id }}/">#{{ loan.id }} - {{ loan.client.full_name }}</a></strong><br>
+  Amount: UGX {{ loan.amount }} | Status: <span class="badge">{{ loan.status }}</span><br>
+  Branch: {{ loan.branch.name|default:loan.client.branch.name }}<br>
+  Due: {{ loan.due_date }}
 </div>
-
-<div class="m-card">
-{% for loan in loans %}
-<div class="card" style="margin-bottom:10px" onclick="window.location.href='{% url 'loans:loan_detail' loan.pk %}'">
-<div style="display:flex;justify-content:space-between"><b>{{ loan.client.full_name }}</b><span class="badge badge-{{ loan.status }}">{{ loan.status }}</span></div>
-<div style="font-size:12px;color:#6b7280;margin-top:6px">UGX {{ loan.principal_amount|intcomma }} → {{ loan.total_payable|intcomma }} • {{ loan.duration_months }}m @ {{ loan.interest_rate }}%</div>
-<div style="font-size:11px;color:#9ca3af;margin-top:4px">{{ loan.applied_at|date:"d M Y" }} • {{ loan.branch.name }}</div>
-</div>
+{% empty %}
+<p>No loans found.</p>
 {% endfor %}
-</div>
 
-{% endblock %}
+</body>
+</html>

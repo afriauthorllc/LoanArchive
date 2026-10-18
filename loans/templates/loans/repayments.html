@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Repayments - LoanArchive{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card-custom{background:white;margin:16px;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+  .card-head-custom{padding:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+  .table-wrap{overflow-x:auto}
+  table.custom-table{width:100%;border-collapse:collapse;min-width:780px}
+  th.custom-th{font-size:11px;color:#6b7280;text-transform:uppercase;padding:10px 12px;text-align:left;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+  td.custom-td{padding:10px 12px;font-size:14px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  .filter-row th{background:white;padding:6px 8px}
+  .filter-row input{width:100%;height:36px;border:1px solid #d1d5db;border-radius:6px;padding:0 10px;background:#fff;outline:none}
+  .input-book{width:85px;height:38px;border:1.5px dashed #f59e0b;background:#fffbeb;border-radius:8px;padding:0 10px;text-align:center;font-weight:700;outline:none}
+  .input-book:focus{border-style:solid;border-color:#f59e0b;background:white;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}
+  .input-book.is-invalid{border-color:#ef4444;background:#fef2f2}
+  .input-amount{width:130px;height:38px;border:1.5px solid #d1d5db;border-radius:8px;padding:0 10px;font-weight:700;outline:none}
+  .input-amount:focus{border-color:#1e3a8a;box-shadow:0 0 0 2px rgba(30,58,138,0.1)}
+  .row-error{font-size:10px;color:#ef4444;font-weight:600;display:none;margin-top:3px}
+  .row-error.show{display:block}
+  .row-saved{background:#ecfdf5 !important}
+  .confirm-wrap{padding:16px;display:flex;gap:10px}
+  .btn-confirm{flex:1;background:#1e3a8a;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn-confirm:disabled{background:#9ca3af;cursor:not-allowed}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1050;justify-content:center;align-items:flex-end}
+  .modal-overlay.show{display:flex}
+  .modal{ background:white;width:100%;max-width:500px;border-radius:16px 16px 0 0;padding:20px;max-height:85vh;overflow-y:auto;animation:slideUp .3s}
+  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  .badge-paid{background:#dcfce7;color:#166534;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card-custom">
+  <div class="card-head-custom">
+    <span>Repayments ({{ active_loans|length }}) - Book No is PRIMARY KEY</span>
+    <span style="font-size:12px;font-weight:400;color:#6b7280" id="countText">0 entered</span>
+  </div>
+  
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} mx-3">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="table-wrap">
+    <table class="custom-table" id="repayTable">
+      <thead>
+        <tr>
+          <th class="custom-th">CLIENT NAME</th>
+          <th class="custom-th">LOAN ID</th>
+          <th class="custom-th">BOOK NO *</th>
+          <th class="custom-th">AMOUNT (UGX) *</th>
+          <th class="custom-th">BALANCE</th>
+          <th class="custom-th">STATUS</th>
+        </tr>
+        <tr class="filter-row">
+          <th><input type="text" data-col="client" placeholder="Search client" id="searchClient"></th>
+          <th><input type="text" data-col="loan" placeholder="Loan ID" id="searchLoan"></th>
+          <th><input type="text" disabled placeholder="Book No" style="background:#f9fafb"></th>
+          <th><input type="text" disabled placeholder="Amount" style="background:#f9fafb"></th>
+          <th colspan="2"><input type="text" disabled placeholder="Search disabled" style="background:#f9fafb"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in active_loans %}
+        <tr data-client="{{ loan.client.full_name }}" data-loan="{{ loan.loan_id|default:loan.id }}" data-loan-pk="{{ loan.id }}">
+          <td class="custom-td" style="font-weight:600">{{ loan.client.full_name }}</td>
+          <td class="custom-td">{{ loan.loan_id|default:loan.id }}</td>
+          <td class="custom-td">
+            <input type="text" class="input-book book-field" name="book_number_{{ loan.id }}" data-loan-pk="{{ loan.id }}" placeholder="{{ forloop.counter }}" required>
+            <div class="row-error" id="error-{{ loan.id }}"></div>
+          </td>
+          <td class="custom-td">
+            <input type="number" class="input-amount amount-field" name="amount_{{ loan.id }}" data-loan-pk="{{ loan.id }}" placeholder="0" min="500" step="100">
+          </td>
+          <td class="custom-td">UGX {{ loan.balance|default:loan.total_payable|floatformat:0 }}</td>
+          <td class="custom-td"><span class="badge-paid">{{ loan.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center p-4">No active loans to collect</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="confirm-wrap">
+    <button class="btn btn-outline-secondary" onclick="clearAll()" type="button" style="padding:14px 20px;border-radius:10px;font-weight:600">Clear</button>
+    <button class="btn-confirm" id="confirmBtn" onclick="openModal()" type="button">Confirm Payments</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0">Confirm Payments</h3>
+      <span onclick="closeModal()" style="font-size:24px;cursor:pointer">×</span>
+    </div>
+    <div id="modalContent"></div>
+    <div style="display:flex;gap:12px;margin-top:20px">
+      <button style="flex:1;padding:12px;border:1px solid #d1d5db;background:white;border-radius:8px;font-weight:600;cursor:pointer" onclick="closeModal()">Cancel</button>
+      <button style="flex:1;padding:12px;background:#1e3a8a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer" onclick="submitPayments()" id="submitBtn">Submit All</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRF for Django
+function getCsrfToken(){ return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'; }
+
+// Live count
+function updateCount(){
+  let c=0;
+  document.querySelectorAll('tbody tr[data-loan-pk]').forEach(tr=>{
+    const b = tr.querySelector('.book-field')?.value.trim();
+    const a = tr.querySelector('.amount-field')?.value.trim();
+    if(b && a) c++;
+  });
+  document.getElementById('countText').textContent = c + ' entered';
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = c===0;
+  btn.textContent = c===0 ? 'Confirm Payments' : `Confirm ${c} Payments`;
+}
+document.addEventListener('input', e=>{
+  if(e.target.classList.contains('book-field') || e.target.classList.contains('amount-field')) updateCount();
+});
+
+// Search filter
+document.getElementById('searchClient')?.addEventListener('input', filterRows);
+document.getElementById('searchLoan')?.addEventListener('input', filterRows);
+function filterRows(){
+  const clientVal = document.getElementById('searchClient').value.toLowerCase();
+  const loanVal = document.getElementById('searchLoan').value.toLowerCase();
+  document.querySelectorAll('tbody tr[data-loan-pk]').forEach(tr=>{
+    const client = tr.dataset.client.toLowerCase();
+    const loan = tr.dataset.loan.toLowerCase();
+    const show = client.includes(clientVal) && loan.includes(loanVal);
+    tr.style.display = show ? '' : 'none';
+  });
+}
+
+// Check duplicate Book No live - calls backend
+document.querySelectorAll('.book-field').forEach(input=>{
+  input.addEventListener('blur', function(){
+    const bookNo = this.value.trim();
+    if(!bookNo) return;
+    const errorEl = document.getElementById(`error-${this.dataset.loanPk}`);
+    fetch(`/loans/api/check-book-number/?book_number=${encodeURIComponent(bookNo)}`)
+      .then(r=>r.json())
+      .then(data=>{
+        if(data.exists){
+          this.classList.add('is-invalid');
+          errorEl.textContent = `Already used for ${data.client} (Book #${bookNo})`;
+          errorEl.classList.add('show');
+        } else {
+          this.classList.remove('is-invalid');
+          errorEl.classList.remove('show');
+        }
+      });
+  });
+});
+
+function openModal(){
+  const rows = document.querySelectorAll('tbody tr[data-loan-pk]');
+  let html = ''; let total = 0; let count = 0; let payload = [];
+  rows.forEach(tr=>{
+    if(tr.style.display==='none') return;
+    const loanPk = tr.dataset.loanPk;
+    const book = tr.querySelector('.book-field').value.trim();
+    const amount = tr.querySelector('.amount-field').value.trim();
+    if(book && amount){
+      count++; total += parseInt(amount)||0;
+      payload.push({loan_id: loanPk, book_number: book, amount_paid: amount});
+      html += `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6;gap:10px">
+          <div><div style="font-weight:700">${tr.dataset.client}</div><div style="font-size:12px;color:#6b7280">Book #${book} • ${tr.dataset.loan}</div></div>
+          <strong>UGX ${parseInt(amount).toLocaleString()}</strong>
+        </div>`;
+    }
+  });
+  if(count===0){
+    html = '<p style="text-align:center;color:#6b7280;padding:20px">No payments entered yet.<br><small>Type Book No and Amount on each name</small></p>';
+  } else {
+    html += `<div style="margin-top:12px;padding:12px;background:#f0f7ff;border-radius:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total (${count})</span><span>UGX ${total.toLocaleString()}</span></div>`;
+  }
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalContent').dataset.payload = JSON.stringify(payload);
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+
+function submitPayments(){
+  const payload = JSON.parse(document.getElementById('modalContent').dataset.payload || '[]');
+  if(payload.length===0) return;
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Submitting...'; btn.disabled = true;
+  
+  fetch("{% url 'bulk_repayment_submit' %}", {
+    method: "POST",
+    headers: {"X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/json"},
+    body: JSON.stringify({repayments: payload})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.success){
+      alert(`${data.saved} payments saved successfully!`);
+      location.reload();
+    } else {
+      alert('Error: ' + (data.error || 'Failed to save'));
+      btn.textContent = 'Submit All'; btn.disabled = false;
+    }
+  }).catch(err=>{
+    alert('Network error: ' + err);
+    btn.textContent = 'Submit All'; btn.disabled = false;
+  });
+}
+function clearAll(){
+  document.querySelectorAll('.book-field, .amount-field').forEach(i=>{i.value=''; i.disabled=false;});
+  document.querySelectorAll('tbody tr').forEach(tr=>tr.classList.remove('row-saved'));
+  document.querySelectorAll('.row-error').forEach(e=>{e.textContent=''; e.classList.remove('show');});
+  document.querySelectorAll('.input-book').forEach(e=>e.classList.remove('is-invalid'));
+  updateCount();
+}
+updateCount();
+</script>
+{% endblock %}

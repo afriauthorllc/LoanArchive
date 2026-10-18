@@ -112,22 +112,32 @@ class Loan(models.Model):
         return max(balance, Decimal('0.00'))
     
         
-from decimal import Decimal
 from django.db import models
 from django.conf import settings
-from django.core.validators import MinValueValidator
-from django.core.exceptions import ValidationError
-from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
+from django.core.validators import MinValueValidator
+from decimal import Decimal
+from django.core.exceptions import ValidationError
 
 class Repayment(models.Model):
     """
     Tracks transaction installments collected against active loans.
+    Uses Physical Book Number as the Primary Key.
     """
     class ModeOfPayment(models.TextChoices):
         CASH = 'CASH', _('Cash')
         MOBILE_MONEY = 'MOBILE_MONEY', _('Mobile Money (MTN/Airtel)')
         BANK_TRANSFER = 'BANK_TRANSFER', _('Bank Transfer')
+
+    # 🔑 PRIMARY KEY IS THE BOOK NUMBER
+    # This is the number written against the payment in the book: 1, 2, 3...
+    book_number = models.CharField(
+        primary_key=True,
+        max_length=50,
+        help_text=_("The entry number from the physical collection book (e.g. 1, 2, 45 or CB-2026-001)"),
+        verbose_name="Book No / Receipt No"
+    )
 
     # 🔗 Account Relationships
     loan = models.ForeignKey(
@@ -160,7 +170,7 @@ class Repayment(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         related_name='collections',
-        help_text=_("The staff member (Cashier or Field Officer) who processed the payment.")
+        help_text=_("The staff member who processed the payment.")
     )
     
     # ⏳ Timestamps
@@ -175,37 +185,25 @@ class Repayment(models.Model):
         verbose_name_plural = "Repayment Records"
 
     def __str__(self):
-        return f"Repayment #{self.id} - UGX {self.amount_paid:,.0f} for Loan #{self.loan.id}"
+        return f"Book #{self.book_number} - UGX {self.amount_paid:,.0f} for {self.loan}"
 
     def clean(self):
         super().clean()
-        # 🛡️ Business Rule validation: Prevent payments on un-disbursed loans
         if self.loan.status not in ['DISBURSED', 'DEFAULTED']:
             raise ValidationError(
-                _("Repayments can only be logged against Disbursed (Active) or Defaulted loans.")
+                _("Repayments can only be logged against Disbursed or Defaulted loans.")
             )
 
     def save(self, *args, **kwargs):
-        # Run clean checks
         self.full_clean()
-        
-        # Save the repayment transaction first
         super().save(*args, **kwargs)
         
-        # 🔄 Automated Business Logic: Recalculate remaining balances
         parent_loan = self.loan
         total_loan_liability = parent_loan.total_payable
-        
-        # Sum up all successful collections for this loan
         total_collected = parent_loan.repayments.aggregate(
             total=models.Sum('amount_paid')
         )['total'] or Decimal('0.00')
 
-        # If the client has cleared or exceeded the payable balance, flip status to Fully Paid
         if total_collected >= total_loan_liability:
             parent_loan.status = 'FULLY_PAID'
             parent_loan.save(update_fields=['status'])
-            
-            
-            
-        

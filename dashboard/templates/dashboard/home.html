@@ -2,10 +2,10 @@
 {% load humanize %}
 {% block content %}
 <div class="kpi-grid">
-<div class="kpi"><div class="kpi-label">Active Loans</div><div class="kpi-value green">{{ active_loans_count|default:0 }}</div></div>
-<div class="kpi"><div class="kpi-label">Pending Approvals</div><div class="kpi-value yellow">{{ pending_count|default:0 }}</div></div>
-<div class="kpi"><div class="kpi-label">Today's Collections Due</div><div class="kpi-value blue">UGX {{ todays_due|default:0|intcomma }}</div></div>
-<div class="kpi"><div class="kpi-label">At-Risk Loans</div><div class="kpi-value red">{{ at_risk_count|default:0 }}</div></div>
+<div class="kpi"><div class="kpi-label">Active Loans</div><div class="kpi-value green">{{ active_loans }}</div></div>
+<div class="kpi"><div class="kpi-label">Pending Approvals</div><div class="kpi-value yellow">{{ pending_approvals }}</div></div>
+<div class="kpi"><div class="kpi-label">Today's Collections Due</div><div class="kpi-value blue">UGX {{ todays_collections_total }}</div></div>
+<div class="kpi"><div class="kpi-label">At-Risk Loans</div><div class="kpi-value red">{{ at_risk_loans }}</div></div>
 </div>
 
 <div class="card">

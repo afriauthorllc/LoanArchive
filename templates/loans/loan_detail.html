@@ -26,6 +26,15 @@
 .btn{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
 .btn-blue{background:var(--blue);color:white}
 .btn-outline{background:white;border:1px solid var(--border)}
+.input-book{width:100%;height:44px;border:1.5px dashed #f59e0b;background:#fffbeb;border-radius:10px;padding:0 14px;font-weight:700;text-align:center;font-size:16px;outline:none}
+.input-book:focus{border-style:solid;border-color:#f59e0b;background:white;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}
+.input-book.is-invalid{border-color:#ef4444;background:#fef2f2}
+.input-book.is-valid{border-color:#16a34a;background:#ecfdf5;border-style:solid}
+.input-amount{width:100%;height:44px;border:1.5px solid #d1d5db;border-radius:10px;padding:0 14px;font-weight:700;font-size:16px;outline:none}
+.input-amount:focus{border-color:#1e4a8a;box-shadow:0 0 0 2px rgba(30,58,138,0.1)}
+.input-book::-webkit-outer-spin-button,.input-book::-webkit-inner-spin-button,.input-amount::-webkit-outer-spin-button,.input-amount::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.input-book[type=number],.input-amount[type=number]{-moz-appearance:textfield}
+.row-error{font-size:11px;color:#ef4444;font-weight:600;display:none;margin-top:4px}
 @media(max-width:768px){.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
 </style>
 
@@ -63,7 +72,7 @@
 <div class="grid2">
   <div class="info">
     <h4>Loan Details</h4>
-    <div class="row"><span>Loan ID</span><b>#{{ loan.id }}</b></div>
+    <div class="row"><span>Loan ID</span><b>LN-{{ loan.id|stringformat:"04d" }}</b></div>
     <div class="row"><span>Branch</span><span>{{ loan.branch.name }}</span></div>
     <div class="row"><span>Applied At</span><span>{{ loan.applied_at|date:"d M Y" }}</span></div>
     <div class="row"><span>Created By</span><span>{{ loan.created_by_officer|default:"-" }}</span></div>
@@ -82,7 +91,7 @@
     <div class="row"><span>Landmark</span><span>{{ client.landmark|default:"-"|truncatechars:40 }}</span></div>
     <div style="margin-top:14px;display:flex;gap:8px">
       <a href="{% url 'clients:detail' client.pk %}" class="btn btn-outline" style="flex:1;text-align:center;text-decoration:none">View Client</a>
-      {% if loan.status == 'DISBURSED' %}<button onclick="openModal()" class="btn btn-blue">Add Repayment</button>{% endif %}
+      {% if loan.status == 'DISBURSED' or loan.status == 'DEFAULTED' %}<button onclick="openModal()" class="btn btn-blue">Add Repayment</button>{% endif %}
     </div>
   </div>
 </div>
@@ -90,45 +99,68 @@
 <div class="info">
   <h4>Repayment History ({{ repayments.count }})</h4>
   {% for r in repayments %}
-  <div class="row"><span>{{ r.collected_at|date:"d M Y H:i" }} • {{ r.get_payment_mode_display }} {% if r.transaction_reference %}({{ r.transaction_reference }}){% endif %}</span><span><b>UGX {{ r.amount_paid|intcomma }}</b> <span style="font-size:11px;color:#6b7280">by {{ r.collected_by|default:"-" }}</span></span></div>
+  <div class="row"><span>Book #{{ r.book_number }} • {{ r.collected_at|date:"d M Y H:i" }} • {{ r.get_payment_mode_display }}</span><span><b>UGX {{ r.amount_paid|intcomma }}</b> <span style="font-size:11px;color:#6b7280">by {{ r.collected_by|default:"-" }}</span></span></div>
   {% empty %}
   <div style="text-align:center;padding:20px;color:#6b7280;font-size:13px">No repayments yet. Loan must be DISBURSED to collect.</div>
   {% endfor %}
 </div>
 
-
+<!-- UPDATED MODAL - Book No (number) + Amount only -->
 <div id="repayModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;align-items:center;justify-content:center;padding:16px">
   <div style="background:white;border-radius:16px;width:100%;max-width:420px;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <b>Add Repayment - Loan #{{ loan.id }}</b>
-      <span onclick="closeModal()" style="cursor:pointer;font-size:20px">×</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <b style="font-size:16px">Record Payment</b>
+      <span onclick="closeModal()" style="cursor:pointer;font-size:24px">×</span>
     </div>
-    <form method="post" action="{% url 'loans:repay' loan.pk %}">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:16px">LN-{{ loan.id|stringformat:"04d" }} • {{ client.full_name }} • Bal: UGX {{ balance|intcomma }}</div>
+    
+    <form method="post" action="{% url 'loans:repay' loan.pk %}" id="repayForm">
       {% csrf_token %}
-      <label style="font-size:12px">Amount (UGX)</label>
-      <input name="amount_paid" type="number" required style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;margin:6px 0 12px">
       
-      <label style="font-size:12px">Mode</label>
-      <select name="payment_mode" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;margin:6px 0 12px">
-        <option value="CASH">Cash</option>
-        <option value="MOBILE_MONEY">Mobile Money</option>
-        <option value="BANK_TRANSFER">Bank Transfer</option>
-      </select>
+      <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase">Book No *</label>
+      <input id="bookField" name="book_number" type="number" inputmode="numeric" min="1" step="1" required placeholder="e.g. 12"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+             class="input-book" style="margin:6px 0 2px">
+      <div id="bookError" class="row-error">Already used</div>
+      <div style="height:12px"></div>
 
-      <label style="font-size:12px">Transaction Ref (optional)</label>
-      <input name="transaction_reference" style="width:100%;padding:12px;border:1px solid var(--border);border-radius:8px;margin:6px 0 16px">
+      <label style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase">Amount (UGX) *</label>
+      <input id="amountField" name="amount_paid" type="number" required min="500" max="{{ balance }}" step="100" placeholder="0"
+             class="input-amount" style="margin:6px 0 4px">
+      <div style="font-size:11px;color:#6b7280">Max: UGX {{ balance|intcomma }} • Total: {{ total_due|intcomma }}</div>
 
-      <div style="display:flex;gap:10px">
-        <button type="button" onclick="closeModal()" style="flex:1" class="btn btn-outline">Cancel</button>
-        <button type="submit" style="flex:1" class="btn btn-blue">Save Payment</button>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button type="button" onclick="closeModal()" class="btn btn-outline" style="flex:1">Cancel</button>
+        <button type="submit" id="submitBtn" class="btn btn-blue" style="flex:1">Save Payment</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-function openModal(){document.getElementById('repayModal').style.display='flex'}
-function closeModal(){document.getElementById('repayModal').style.display='none'}
-</script>
+function openModal(){document.getElementById('repayModal').style.display='flex'; document.getElementById('bookField').focus();}
+function closeModal(){document.getElementById('repayModal').style.display='none';}
 
+const bookField = document.getElementById('bookField');
+const bookError = document.getElementById('bookError');
+const submitBtn = document.getElementById('submitBtn');
+
+bookField.addEventListener('blur', async function(){
+  const val = this.value.trim();
+  if(!val) return;
+  try{
+    const res = await fetch(`{% url 'loans:check_book_number' %}?book_number=${encodeURIComponent(val)}`).then(r=>r.json());
+    if(res.exists){
+      this.classList.add('is-invalid'); this.classList.remove('is-valid');
+      bookError.textContent = 'Book #' + val + ' already used!';
+      bookError.style.display = 'block';
+      submitBtn.disabled = true;
+    } else {
+      this.classList.remove('is-invalid'); this.classList.add('is-valid');
+      bookError.style.display = 'none';
+      submitBtn.disabled = false;
+    }
+  } catch(e){}
+});
+</script>
 {% endblock %}

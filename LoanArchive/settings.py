@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-k#db^vt50euu3nbj&o1&668&7y^ju0q&9gm_5*y)_%k74xbf_w'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 # 🌐 Network Access Configurations for Termux
 CSRF_TRUSTED_ORIGINS = ["https://loanarchive.com", "https://www.loanarchive.com", "https://*.onrender.com"]
@@ -86,12 +86,28 @@ WSGI_APPLICATION = 'LoanArchive.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+import os
+
+if os.getenv("DATABASE_URL"):
+    # On Render + Neon - needs dj_database_url + psycopg2
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    # On phone - local dev, no Postgres needed
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+
 
 
 # Password validation

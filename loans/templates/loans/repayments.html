@@ -1,229 +1,175 @@
-{% extends 'base.html' %}
-{% load static %}
-{% block title %}Repayments - LoanArchive{% endblock %}
+{% extends "base.html" %}
+{% block title %}Repayments - LoanArchive{% endblock title %}
 
-{% block extra_css %}
+{% block extra-css %}
 <style>
-  .card-custom{background:white;margin:16px;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
-  .card-head-custom{padding:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
-  .table-wrap{overflow-x:auto}
-  table.custom-table{width:100%;border-collapse:collapse;min-width:780px}
-  th.custom-th{font-size:11px;color:#6b7280;text-transform:uppercase;padding:10px 12px;text-align:left;background:#f9fafb;border-bottom:1px solid #e5e7eb}
-  td.custom-td{padding:10px 12px;font-size:14px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
-  .filter-row th{background:white;padding:6px 8px}
+  .repay-card{background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);border:1px solid var(--border);max-width:100%}
+  .repay-head{padding:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center;background:white}
+  .repay-table-wrap{overflow-x:auto;overflow-y:hidden;width:100%;display:block !important;-webkit-overflow-scrolling:touch}
+  #repayTable{width:100%;border-collapse:collapse;min-width:900px}
+  #repayTable th{font-size:11px;color:#6b7280;text-transform:uppercase;padding:10px 12px;text-align:left;background:#f9fafb;border-bottom:1px solid #e5e7eb}
+  #repayTable td{padding:10px 12px;font-size:14px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+  .filter-row th{background:white!important;padding:6px 8px!important}
   .filter-row input{width:100%;height:36px;border:1px solid #d1d5db;border-radius:6px;padding:0 10px;background:#fff;outline:none}
   .input-book{width:85px;height:38px;border:1.5px dashed #f59e0b;background:#fffbeb;border-radius:8px;padding:0 10px;text-align:center;font-weight:700;outline:none}
   .input-book:focus{border-style:solid;border-color:#f59e0b;background:white;box-shadow:0 0 0 3px rgba(245,158,11,0.15)}
   .input-book.is-invalid{border-color:#ef4444;background:#fef2f2}
-  .input-amount{width:130px;height:38px;border:1.5px solid #d1d5db;border-radius:8px;padding:0 10px;font-weight:700;outline:none}
-  .input-amount:focus{border-color:#1e3a8a;box-shadow:0 0 0 2px rgba(30,58,138,0.1)}
+  .input-book.is-valid{border-color:#16a34a;background:#ecfdf5;border-style:solid}
+  .input-amount{width:125px;height:38px;border:1.5px solid #d1d5db;border-radius:8px;padding:0 10px;font-weight:700;outline:none}
   .row-error{font-size:10px;color:#ef4444;font-weight:600;display:none;margin-top:3px}
-  .row-error.show{display:block}
   .row-saved{background:#ecfdf5 !important}
-  .confirm-wrap{padding:16px;display:flex;gap:10px}
-  .btn-confirm{flex:1;background:#1e3a8a;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
-  .btn-confirm:disabled{background:#9ca3af;cursor:not-allowed}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1050;justify-content:center;align-items:flex-end}
+  .row-saved td{opacity:0.6}
+  .confirm-wrap{padding:16px;display:flex;gap:10px;background:white}
+  .btn-confirm{flex:1;background:#1e4a8a;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn-confirm:disabled{background:#9ca3af}
+  .btn-clear{padding:14px 20px;border:1px solid #d1d5db;background:white;border-radius:10px;font-weight:600;cursor:pointer}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;justify-content:center;align-items:flex-end}
   .modal-overlay.show{display:flex}
-  .modal{ background:white;width:100%;max-width:500px;border-radius:16px 16px 0 0;padding:20px;max-height:85vh;overflow-y:auto;animation:slideUp .3s}
-  @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-  .badge-paid{background:#dcfce7;color:#166534;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
+  .modal{background:white;width:100%;max-width:500px;border-radius:16px 16px 0 0;padding:20px;max-height:85vh;overflow-y:auto}
+  .modal-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6;gap:10px}
+  .main{overflow-x:hidden !important}
+  @media (max-width:768px){.repay-table-wrap{display:block !important}}
+  .badge-disbursed{background:#DBEAFE;color:#1E40AF;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
+  .badge-defaulted{background:#7F1D1D;color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
+  .balance-text{font-size:11px;color:#6b7280}
 </style>
-{% endblock %}
+{% endblock extra-css %}
 
 {% block content %}
-<div class="card-custom">
-  <div class="card-head-custom">
-    <span>Repayments ({{ active_loans|length }}) - Book No is PRIMARY KEY</span>
+<div class="repay-card">
+  <div class="repay-head">
+    <span>Repayments ({{ loans|length }}) • {{ disbursed_count }} Active • {{ defaulted_count }} Defaulted</span>
     <span style="font-size:12px;font-weight:400;color:#6b7280" id="countText">0 entered</span>
   </div>
-  
-  {% if messages %}
-    {% for message in messages %}
-      <div class="alert alert-{{ message.tags }} mx-3">{{ message }}</div>
-    {% endfor %}
-  {% endif %}
-
-  <div class="table-wrap">
-    <table class="custom-table" id="repayTable">
+  <div class="repay-table-wrap">
+    <table id="repayTable">
       <thead>
         <tr>
-          <th class="custom-th">CLIENT NAME</th>
-          <th class="custom-th">LOAN ID</th>
-          <th class="custom-th">BOOK NO *</th>
-          <th class="custom-th">AMOUNT (UGX) *</th>
-          <th class="custom-th">BALANCE</th>
-          <th class="custom-th">STATUS</th>
+          <th>CLIENT NAME</th>
+          <th>LOAN ID</th>
+          <th>BOOK NO *</th>
+          <th>AMOUNT (UGX) *</th>
+          <th>BALANCE</th>
+          <th>DATE</th>
+          <th>STATUS</th>
         </tr>
         <tr class="filter-row">
-          <th><input type="text" data-col="client" placeholder="Search client" id="searchClient"></th>
-          <th><input type="text" data-col="loan" placeholder="Loan ID" id="searchLoan"></th>
-          <th><input type="text" disabled placeholder="Book No" style="background:#f9fafb"></th>
-          <th><input type="text" disabled placeholder="Amount" style="background:#f9fafb"></th>
-          <th colspan="2"><input type="text" disabled placeholder="Search disabled" style="background:#f9fafb"></th>
+          <th><input type="text" data-col="client" placeholder="Search client"></th>
+          <th><input type="text" data-col="loan" placeholder="Loan ID"></th>
+          <th><input type="text" disabled style="background:#f9fafb"></th>
+          <th><input type="text" disabled style="background:#f9fafb"></th>
+          <th><input type="text" disabled style="background:#f9fafb"></th>
+          <th><input type="text" data-col="date" placeholder="Date"></th>
+          <th><input type="text" data-col="status" placeholder="Status"></th>
         </tr>
       </thead>
       <tbody>
-        {% for loan in active_loans %}
-        <tr data-client="{{ loan.client.full_name }}" data-loan="{{ loan.loan_id|default:loan.id }}" data-loan-pk="{{ loan.id }}">
-          <td class="custom-td" style="font-weight:600">{{ loan.client.full_name }}</td>
-          <td class="custom-td">{{ loan.loan_id|default:loan.id }}</td>
-          <td class="custom-td">
-            <input type="text" class="input-book book-field" name="book_number_{{ loan.id }}" data-loan-pk="{{ loan.id }}" placeholder="{{ forloop.counter }}" required>
-            <div class="row-error" id="error-{{ loan.id }}"></div>
+        {% for loan in loans %}
+        <tr data-client="{{ loan.client.full_name }}" data-loan="LN-{{ loan.id|stringformat:'04d' }}" data-loan-id="{{ loan.id }}">
+          <td style="font-weight:600">
+            {{ loan.client.full_name }}
+            <div class="balance-text">{{ loan.client.telephone_number }}</div>
           </td>
-          <td class="custom-td">
-            <input type="number" class="input-amount amount-field" name="amount_{{ loan.id }}" data-loan-pk="{{ loan.id }}" placeholder="0" min="500" step="100">
+          <td>LN-{{ loan.id|stringformat:"04d" }}</td>
+          <td>
+            <input type="number" class="input-book book-field" data-loan-id="{{ loan.id }}" placeholder="e.g. {{ forloop.counter }}">
+            <div class="row-error"></div>
           </td>
-          <td class="custom-td">UGX {{ loan.balance|default:loan.total_payable|floatformat:0 }}</td>
-          <td class="custom-td"><span class="badge-paid">{{ loan.get_status_display }}</span></td>
+          <td>
+            <input type="number" class="input-amount amount-field" data-loan-id="{{ loan.id }}" placeholder="0" max="{{ loan.outstanding_balance }}">
+            <div style="font-size:10px;color:#9ca3af">Max: {{ loan.outstanding_balance|floatformat:0 }}</div>
+          </td>
+          <td>
+            <div style="font-weight:700">UGX {{ loan.outstanding_balance|floatformat:0 }}</div>
+            <div class="balance-text">of {{ loan.total_payable|floatformat:0 }}</div>
+          </td>
+          <td>{{ loan.disbursed_at|date:"d M Y"|default:loan.applied_at|date:"d M Y" }}</td>
+          <td>
+            {% if loan.status == 'DISBURSED' %}<span class="badge-disbursed">Disbursed</span>
+            {% else %}<span class="badge-defaulted">Defaulted</span>{% endif %}
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-center p-4">No active loans to collect</td></tr>
+        <tr><td colspan="7" style="text-align:center;padding:30px;color:#9ca3af">No disbursed or defaulted loans found</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   <div class="confirm-wrap">
-    <button class="btn btn-outline-secondary" onclick="clearAll()" type="button" style="padding:14px 20px;border-radius:10px;font-weight:600">Clear</button>
-    <button class="btn-confirm" id="confirmBtn" onclick="openModal()" type="button">Confirm Payments</button>
+    <button class="btn-clear" onclick="clearAll()">Clear</button>
+    <button class="btn-confirm" id="confirmBtn" onclick="openModal()">Confirm Payments</button>
   </div>
 </div>
 
-<!-- Confirm Modal -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 style="margin:0">Confirm Payments</h3>
-      <span onclick="closeModal()" style="font-size:24px;cursor:pointer">×</span>
+      <h3>Confirm Payments</h3><span onclick="closeModal()" style="font-size:24px;cursor:pointer">×</span>
     </div>
     <div id="modalContent"></div>
     <div style="display:flex;gap:12px;margin-top:20px">
-      <button style="flex:1;padding:12px;border:1px solid #d1d5db;background:white;border-radius:8px;font-weight:600;cursor:pointer" onclick="closeModal()">Cancel</button>
-      <button style="flex:1;padding:12px;background:#1e3a8a;color:white;border:none;border-radius:8px;font-weight:600;cursor:pointer" onclick="submitPayments()" id="submitBtn">Submit All</button>
+      <button class="btn-clear" style="flex:1" onclick="closeModal()">Cancel</button>
+      <button class="btn-confirm" style="flex:1" onclick="submitPayments()">Submit All</button>
     </div>
   </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-// CSRF for Django
-function getCsrfToken(){ return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'; }
-
-// Live count
+const CSRF = "{{ csrf_token }}";
+function getBookStatus(book){
+  return fetch(`{% url 'loans:check_book_number' %}?book_number=${encodeURIComponent(book)}`).then(r=>r.json());
+}
 function updateCount(){
-  let c=0;
-  document.querySelectorAll('tbody tr[data-loan-pk]').forEach(tr=>{
-    const b = tr.querySelector('.book-field')?.value.trim();
-    const a = tr.querySelector('.amount-field')?.value.trim();
-    if(b && a) c++;
+  let c=0; document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
+    const b=tr.querySelector('.book-field').value.trim(); const a=tr.querySelector('.amount-field').value.trim(); if(b&&a) c++;
   });
-  document.getElementById('countText').textContent = c + ' entered';
-  const btn = document.getElementById('confirmBtn');
-  btn.disabled = c===0;
-  btn.textContent = c===0 ? 'Confirm Payments' : `Confirm ${c} Payments`;
+  document.getElementById('countText').textContent=c+' entered';
+  document.getElementById('confirmBtn').disabled=c===0;
+  document.getElementById('confirmBtn').textContent=c===0?'Confirm Payments':`Confirm ${c} Payments`;
 }
-document.addEventListener('input', e=>{
-  if(e.target.classList.contains('book-field') || e.target.classList.contains('amount-field')) updateCount();
+document.querySelectorAll('.book-field').forEach(inp=>{
+  inp.addEventListener('blur', async function(){
+    const val=this.value.trim(); if(!val) return;
+    const res=await getBookStatus(val);
+    const err=this.parentElement.querySelector('.row-error');
+    if(res.exists){ this.classList.add('is-invalid'); this.classList.remove('is-valid'); err.textContent='Book #'+val+' already used!'; err.style.display='block'; }
+    else { this.classList.remove('is-invalid'); this.classList.add('is-valid'); err.style.display='none'; }
+  });
+  inp.addEventListener('input', updateCount);
 });
+document.querySelectorAll('.amount-field').forEach(i=>i.addEventListener('input', updateCount));
 
-// Search filter
-document.getElementById('searchClient')?.addEventListener('input', filterRows);
-document.getElementById('searchLoan')?.addEventListener('input', filterRows);
-function filterRows(){
-  const clientVal = document.getElementById('searchClient').value.toLowerCase();
-  const loanVal = document.getElementById('searchLoan').value.toLowerCase();
-  document.querySelectorAll('tbody tr[data-loan-pk]').forEach(tr=>{
-    const client = tr.dataset.client.toLowerCase();
-    const loan = tr.dataset.loan.toLowerCase();
-    const show = client.includes(clientVal) && loan.includes(loanVal);
-    tr.style.display = show ? '' : 'none';
-  });
-}
-
-// Check duplicate Book No live - calls backend
-document.querySelectorAll('.book-field').forEach(input=>{
-  input.addEventListener('blur', function(){
-    const bookNo = this.value.trim();
-    if(!bookNo) return;
-    const errorEl = document.getElementById(`error-${this.dataset.loanPk}`);
-    fetch(`/loans/api/check-book-number/?book_number=${encodeURIComponent(bookNo)}`)
-      .then(r=>r.json())
-      .then(data=>{
-        if(data.exists){
-          this.classList.add('is-invalid');
-          errorEl.textContent = `Already used for ${data.client} (Book #${bookNo})`;
-          errorEl.classList.add('show');
-        } else {
-          this.classList.remove('is-invalid');
-          errorEl.classList.remove('show');
-        }
-      });
+document.querySelectorAll('.filter-row input[data-col]').forEach(inp=>{
+  inp.addEventListener('input', function(){
+    const col=this.dataset.col; const val=this.value.toLowerCase();
+    document.querySelectorAll('#repayTable tbody tr').forEach(tr=>{
+      let txt=''; if(col==='client') txt=tr.dataset.client; if(col==='loan') txt=tr.dataset.loan; if(col==='date') txt=tr.cells[5].innerText; if(col==='status') txt=tr.cells[6].innerText;
+      tr.style.display=val===''||txt.toLowerCase().includes(val)?'':'none';
+    });
   });
 });
-
 function openModal(){
-  const rows = document.querySelectorAll('tbody tr[data-loan-pk]');
-  let html = ''; let total = 0; let count = 0; let payload = [];
-  rows.forEach(tr=>{
-    if(tr.style.display==='none') return;
-    const loanPk = tr.dataset.loanPk;
-    const book = tr.querySelector('.book-field').value.trim();
-    const amount = tr.querySelector('.amount-field').value.trim();
-    if(book && amount){
-      count++; total += parseInt(amount)||0;
-      payload.push({loan_id: loanPk, book_number: book, amount_paid: amount});
-      html += `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6;gap:10px">
-          <div><div style="font-weight:700">${tr.dataset.client}</div><div style="font-size:12px;color:#6b7280">Book #${book} • ${tr.dataset.loan}</div></div>
-          <strong>UGX ${parseInt(amount).toLocaleString()}</strong>
-        </div>`;
-    }
+  let html=''; let total=0; let count=0;
+  document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
+    const book=tr.querySelector('.book-field').value.trim(); const amount=tr.querySelector('.amount-field').value.trim();
+    if(book&&amount){ count++; total+=parseInt(amount)||0; html+=`<div class="modal-item"><div><div style="font-weight:700">${tr.dataset.client}</div><div style="font-size:12px;color:#6b7280">Book #${book} • ${tr.dataset.loan}</div></div><strong>UGX ${parseInt(amount).toLocaleString()}</strong></div>`; }
   });
-  if(count===0){
-    html = '<p style="text-align:center;color:#6b7280;padding:20px">No payments entered yet.<br><small>Type Book No and Amount on each name</small></p>';
-  } else {
-    html += `<div style="margin-top:12px;padding:12px;background:#f0f7ff;border-radius:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total (${count})</span><span>UGX ${total.toLocaleString()}</span></div>`;
-  }
-  document.getElementById('modalContent').innerHTML = html;
-  document.getElementById('modalContent').dataset.payload = JSON.stringify(payload);
-  document.getElementById('modalOverlay').classList.add('show');
+  if(count===0) html='<p style="text-align:center;color:#6b7280;padding:20px">No payments entered</p>';
+  else html+=`<div style="margin-top:12px;padding:12px;background:#f0f7ff;border-radius:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total (${count})</span><span>UGX ${total.toLocaleString()}</span></div>`;
+  document.getElementById('modalContent').innerHTML=html; document.getElementById('modalOverlay').classList.add('show');
 }
-function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
-
-function submitPayments(){
-  const payload = JSON.parse(document.getElementById('modalContent').dataset.payload || '[]');
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
+async function submitPayments(){
+  const payload=[]; document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
+    const book=tr.querySelector('.book-field').value.trim(); const amount=tr.querySelector('.amount-field').value.trim(); const loan_id=tr.dataset.loanId;
+    if(book&&amount) payload.push({book_number:book, loan_id:loan_id, amount:amount});
+  });
   if(payload.length===0) return;
-  const btn = document.getElementById('submitBtn');
-  btn.textContent = 'Submitting...'; btn.disabled = true;
-  
-  fetch("{% url 'bulk_repayment_submit' %}", {
-    method: "POST",
-    headers: {"X-CSRFToken": "{{ csrf_token }}", "Content-Type": "application/json"},
-    body: JSON.stringify({repayments: payload})
-  })
-  .then(r=>r.json())
-  .then(data=>{
-    if(data.success){
-      alert(`${data.saved} payments saved successfully!`);
-      location.reload();
-    } else {
-      alert('Error: ' + (data.error || 'Failed to save'));
-      btn.textContent = 'Submit All'; btn.disabled = false;
-    }
-  }).catch(err=>{
-    alert('Network error: ' + err);
-    btn.textContent = 'Submit All'; btn.disabled = false;
-  });
+  const res=await fetch("{% url 'loans:bulk_repayment_submit' %}", {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:JSON.stringify({repayments:payload})});
+  const data=await res.json();
+  if(data.success){ alert(`Saved ${data.saved} payments`); location.reload(); } else { alert('Error: '+ (data.error||data.errors)); }
 }
-function clearAll(){
-  document.querySelectorAll('.book-field, .amount-field').forEach(i=>{i.value=''; i.disabled=false;});
-  document.querySelectorAll('tbody tr').forEach(tr=>tr.classList.remove('row-saved'));
-  document.querySelectorAll('.row-error').forEach(e=>{e.textContent=''; e.classList.remove('show');});
-  document.querySelectorAll('.input-book').forEach(e=>e.classList.remove('is-invalid'));
-  updateCount();
-}
+function clearAll(){ document.querySelectorAll('.book-field, .amount-field').forEach(i=>{i.value=''; i.disabled=false; i.classList.remove('is-invalid','is-valid');}); document.querySelectorAll('.row-error').forEach(e=>e.style.display='none'); updateCount(); }
 updateCount();
 </script>
-{% endblock %}
+{% endblock content %}

@@ -100,6 +100,25 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
 .btn:hover{background:var(--blue);color:white}
 
 .mobile-cards,.bottom-nav,.fab,.mobile-only{display:none}
+    
+/* LOW - pale, lowest priority, waiting */
+.s-pending { background:#FEF3C7; color:#92400E; }
+
+
+/* MEDIUM-HIGH - solid blue, money active, needs monitoring */
+.s-disbursed { background:#DBEAFE; color:#1E40AF; }
+
+/* MEDIUM-HIGH - solid blue, money active, needs monitoring */
+.s-approved { background:#2563EB; color:white; }
+
+/* HIGH SUCCESS - deepest green, strongest positive */
+.s-fully_paid { background:#047857; color:white; }
+
+/* MEDIUM NEGATIVE - soft rose, closed failure */
+.s-rejected { background:#FEE2E2; color:#B91C1C; }
+
+/* CRITICAL HIGH - darkest red, highest risk */
+.s-defaulted { background:#7F1D1D; color:white; }  
 
 @media (max-width:768px){
   .sidebar,.table-wrap,.desktop-only{display:none!important}
@@ -129,6 +148,8 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
   color:var(--blue);
   font-weight:600;
 }
+    
+    {% block extra-css %}{% endblock extra-css %}
 </style>
 </head>
 <body>
@@ -299,15 +320,6 @@ document.addEventListener('click', function(e){
     
     {% endblock content %}
     
-<!-- BOTTOM NAV MOBILE -->
-<div class="bottom-nav">
-  <a href="#" class="b-item {% if request.resolver_match.url_name == 'dashboard' or request.path == '/' %}active{% endif %}">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard
-  </a>
-
-  <a href="{% url 'clients:list' %}" class="b-item {% if 'clients' in request.path %}active{% endif %}">
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h4"/><path d="M18 9v4"/></svg>My Clients
-  </a>
 
 <!-- BOTTOM NAV MOBILE -->
 <div class="bottom-nav">
@@ -319,7 +331,7 @@ document.addEventListener('click', function(e){
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h4"/><path d="M18 9v4"/></svg>My Clients
   </a>
 
-  <a href="#" class="b-item" style="opacity:0.5" onclick="alert('Repayments coming soon');return false;">
+  <a href="{% url 'loans:repayments_page' %}" class="b-item {% if 'loans/repayments' in request.path %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Repayments
   </a>
 

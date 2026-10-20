@@ -293,7 +293,7 @@ document.addEventListener('click', function(e){
       Repayments
     </a>
 
-    <a href="{% url 'loans:repayments_page' %}" class="side-link" style="text-decoration:none; opacity:0.6">
+    <a href="{% url 'loans:reports_page' %}" class="side-link" style="text-decoration:none;>
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Reports
     </a>
@@ -311,7 +311,7 @@ document.addEventListener('click', function(e){
   <a href="{% url 'loans:repayments_page' %}" class="b-item {% if 'loans/repayments' in request.path %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Repayments
   </a>
-  <a href="#" class="b-item" style="opacity:0.5" onclick="alert('Reports coming soon');return false;">
+  <a href="{% url 'loans:reports_page' %}" class="b-item";return false;">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports
   </a>
 </div></div>

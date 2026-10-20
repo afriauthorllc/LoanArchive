@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.contrib import messages
 from django.db import IntegrityError
+from django.db.models import Sum
+from django.utils import timezone
 
 from .models import Loan, Repayment
 from .forms import LoanApplicationForm
@@ -181,3 +183,14 @@ def repayment_live_filter(request):
 @login_required
 def repayment_page(request):
     return redirect('loans:repayments')
+        
+@login_required
+def reports_page(request):
+    today = timezone.now().date()
+    total_disbursed = Loan.objects.filter(status='DISBURSED').aggregate(s=Sum('principal_amount'))['s'] or 0
+    # add other aggregates as you need
+    return render(request, 'loans/reports.html', {
+        'total_disbursed': total_disbursed,
+        'active_loans': Loan.objects.filter(status='DISBURSED').count(),
+    }) 
+        

@@ -22,4 +22,8 @@ urlpatterns = [
     path('check-book/', views.check_book_number_api, name='check_book_number_api'),
     path('api/check-book-number/', views.check_book_number, name='check_book_number_alt'),
     path('api/bulk-repay/', views.bulk_repayment_submit, name='bulk_repayment_submit'),
+    
+    path('reports/', views.reports_page, name='reports_page'),
+    
+    
 ]

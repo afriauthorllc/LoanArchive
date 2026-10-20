@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<style>
+.filter-row{display:flex;gap:10px;align-items:end;margin-bottom:16px;flex-wrap:wrap}
+.filter-row .f{flex:1;min-width:130px}
+.filter-row label{font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:4px}
+.filter-row input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:13px}
+.btn-filter{background:var(--blue);color:white;border:none;padding:10px 16px;border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.reports-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.r-card{background:white;border:1px solid var(--border);border-radius:14px;padding:14px;text-decoration:none;color:inherit;display:block;transition:.15s}
+.r-card:hover{border-color:var(--blue);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.r-head{display:flex;gap:10px;align-items:start;margin-bottom:10px}
+.r-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.r-icon svg{width:18px;height:18px}
+.r-title{font-size:12px;font-weight:700;color:#111827;line-height:14px}
+.r-amount{font-size:15px;font-weight:800;color:#111827;margin-top:4px}
+.r-footer{margin-top:12px;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.r-mini{height:36px;width:100%;display:flex;align-items:end;gap:3px;margin-top:8px}
+.bar{flex:1;border-radius:3px}
+.c-green .r-icon{background:#dcfce7;color:#16a34a}.c-green .r-footer{color:#16a34a}
+.c-blue .r-icon{background:#dbeafe;color:#2563eb}.c-blue .r-footer{color:#2563eb}
+.c-purple .r-icon{background:#f3e8ff;color:#7c3aed}.c-purple .r-footer{color:#7c3aed}
+.c-teal .r-icon{background:#ccfbf1;color:#0d9488}.c-teal .r-footer{color:#0d9488}
+.c-orange .r-icon{background:#ffedd5;color:#ea580c}.c-orange .r-footer{color:#ea580c}
+.c-indigo .r-icon{background:#e0e7ff;color:#4f46e5}.c-indigo .r-footer{color:#4f46e5}
+</style>
+
+<div style="margin-bottom:14px">
+  <h2 style="font-size:20px;font-weight:800;margin:0 0 12px">Reports</h2>
+  <form method="GET" class="filter-row">
+    <div class="f"><label>From</label><input type="date" name="from" value="{{ request.GET.from|default:'2024-09-01' }}"></div>
+    <div class="f"><label>To</label><input type="date" name="to" value="{{ request.GET.to|default:'2024-09-30' }}"></div>
+    <button class="btn-filter" type="submit">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filter
+    </button>
+  </form>
+</div>
+
+<div class="reports-grid">
+  <!-- 1 Daily Collections -->
+  <a href="{% url 'loans:list' %}?filter=today_collections" class="r-card c-green">
+    <div class="r-head">
+      <div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.5 9.5 9 15"/><path d="M16 16a6 6 0 0 0-12 0c0 1.5.8 3 3 3h6c2.2 0 3-1.5 3-3Z"/></svg></div>
+      <div><div class="r-title">Daily Collections</div><div class="r-amount">UGX {{ total_collections|default:0|floatformat:0|intcomma }}</div></div>
+    </div>
+    <div class="r-mini"><div class="bar" style="height:50%;background:#bbf7d0"></div><div class="bar" style="height:70%;background:#86efac"></div><div class="bar" style="height:55%;background:#bbf7d0"></div><div class="bar" style="height:75%;background:#86efac"></div><div class="bar" style="height:90%;background:#16a34a"></div></div>
+    <div class="r-footer"><span>Today +8.2%</span><span>→</span></div>
+  </a>
+
+  <!-- 2 Disbursement -->
+  <a href="{% url 'loans:list' %}?status=disbursed" class="r-card c-blue">
+    <div class="r-head"><div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg></div><div><div class="r-title">Disbursement Report</div><div class="r-amount">UGX {{ total_disbursed|default:0|floatformat:0|intcomma }}</div></div></div>
+    <div class="r-mini"><div class="bar" style="height:60%;background:#bfdbfe"></div><div class="bar" style="height:80%;background:#93c5fd"></div><div class="bar" style="height:65%;background:#bfdbfe"></div><div class="bar" style="height:75%;background:#93c5fd"></div><div class="bar" style="height:95%;background:#2563eb"></div></div>
+    <div class="r-footer"><span>Sept mtd +12.4%</span><span>→</span></div>
+  </a>
+
+  <!-- 3 Repayment -->
+  <a href="{% url 'loans:repayments_page' %}" class="r-card c-purple">
+    <div class="r-head"><div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg></div><div><div class="r-title">Repayment Report</div><div class="r-amount">UGX {{ total_repaid|default:0|floatformat:0|intcomma }}</div></div></div>
+    <div class="r-mini"><div class="bar" style="height:60%;background:#e9d5ff"></div><div class="bar" style="height:40%;background:#d8b4fe"></div><div class="bar" style="height:70%;background:#e9d5ff"></div><div class="bar" style="height:55%;background:#d8b4fe"></div><div class="bar" style="height:90%;background:#7c3aed"></div></div>
+    <div class="r-footer"><span>Collected 86%</span><span>→</span></div>
+  </a>
+
+  <!-- 4 Portfolio -->
+  <a href="{% url 'loans:list' %}" class="r-card c-teal">
+    <div class="r-head"><div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A2.5 2.5 0 0 1 19 16h-1a2.5 2.5 0 0 1-2.5-2.5V8.5A2.5 2.5 0 0 1 18 6h1a2.5 2.5 0 0 1 2.21 3.89"/><path d="M3 6v6a2.5 2.5 0 0 0 2.5 2.5H8A2.5 2.5 0 0 0 10.5 12V6A2.5 2.5 0 0 0 8 3.5H5.5A2.5 2.5 0 0 0 3 6z"/><path d="M12 2v10a2.5 2.5 0 0 1-2.5 2.5h-1A2.5 2.5 0 0 1 6 12V2"/></svg></div><div><div class="r-title">Portfolio Status</div><div class="r-amount">UGX {{ total_portfolio|default:0|floatformat:0|intcomma }}</div></div></div>
+    <div class="r-mini" style="justify-content:center"><div class="bar" style="height:40%;background:#99f6e0;width:8px"></div><div class="bar" style="height:60%;background:#5eead4;width:8px"></div><div class="bar" style="height:90%;background:#0d9488;width:8px"></div><div class="bar" style="height:70%;background:#5eead4;width:8px"></div><div class="bar" style="height:50%;background:#99f6e0;width:8px"></div></div>
+    <div class="r-footer"><span>Active loans {{ active_loans|default:2 }}</span><span>→</span></div>
+  </a>
+
+  <!-- 5 Overdue -->
+  <a href="{% url 'loans:list' %}?status=overdue" class="r-card c-orange">
+    <div class="r-head"><div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div><div class="r-title">Overdue & At-Risk</div><div class="r-amount">UGX {{ total_overdue|default:0|floatformat:0|intcomma }}</div></div></div>
+    <div class="r-mini"><div class="bar" style="height:90%;background:#fed7aa"></div><div class="bar" style="height:70%;background:#fdba74"></div><div class="bar" style="height:60%;background:#fed7aa"></div><div class="bar" style="height:40%;background:#fdba74"></div><div class="bar" style="height:25%;background:#ea580c"></div></div>
+    <div class="r-footer"><span>{{ overdue_count|default:0 }} accounts • 4.2%</span><span>→</span></div>
+  </a>
+
+  <!-- 6 Branch -->
+  <a href="{% url 'loans:list' %}?group=branch" class="r-card c-indigo">
+    <div class="r-head"><div class="r-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="r-title">Branch Performance</div><div class="r-amount">UGX {{ total_branch|default:0|floatformat:0|intcomma }}</div></div></div>
+    <div class="r-mini"><div class="bar" style="height:50%;background:#c7d2fe"></div><div class="bar" style="height:75%;background:#a5b4fc"></div><div class="bar" style="height:60%;background:#c7d2fe"></div><div class="bar" style="height:80%;background:#a5b4fc"></div><div class="bar" style="height:95%;background:#4f46e5"></div></div>
+    <div class="r-footer"><span>Top: Kampala +6.1%</span><span>→</span></div>
+  </a>
+</div>
+
+<div style="margin-top:16px;padding:12px;background:white;border:1px solid var(--border);border-radius:12px;display:flex;gap:8px">
+  <a href="?export=csv" style="flex:1;text-align:center;padding:10px;border:1px solid var(--border);border-radius:10px;text-decoration:none;font-weight:700;font-size:12px;color:#111827">Export CSV</a>
+  <a href="?export=pdf" style="flex:1;text-align:center;padding:10px;background:#111827;color:white;border-radius:10px;text-decoration:none;font-weight:700;font-size:12px">Export PDF</a>
+</div>
+{% endblock content %}

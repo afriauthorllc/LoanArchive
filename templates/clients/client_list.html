@@ -13,40 +13,42 @@
 .search-box{flex:1;min-width:220px;position:relative;background:white;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;padding:0 12px}
 .search-box input{border:none;outline:none;width:100%;padding:11px 8px;font-size:13px;background:transparent}
 .search-box svg{flex-shrink:0;color:#9ca3af}
-.filter-select{background:white;border:1px solid var(--border);border-radius:8px;padding:11px 12px;font-size:13px;min-width:120px}
 .client-table-wrap{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .mobile-client-cards{display:none}
 .m-client{background:white;border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);cursor:pointer}
 .m-client-name{font-weight:700;font-size:14px;margin-bottom:8px;color:#111827}
 .m-client-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#374151;margin-bottom:6px}
 .m-client-row svg{color:#6b7280}
-.badge{padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;color:white;text-transform:uppercase}
 @media (max-width:768px){
   .desktop-client-table{display:none!important}
   .mobile-client-cards{display:block}
 }
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;color:#6b7280;padding:12px;text-align:left;background:#f9fafb}
+td{padding:12px;font-size:13px;border-top:1px solid var(--border)}
+.no-results{display:none;text-align:center;padding:20px;color:#6b7280;font-size:13px}
 </style>
 
 <div class="clients-header">
-  <div class="clients-title">My Clients <span>({{ clients.count }})</span></div>
+  <div class="clients-title">My Clients <span id="clientCount">({{ clients.count }})</span></div>
   <button class="btn-primary" onclick="window.location.href='{% url 'clients:add_new_client' %}'">+ New Client</button>
 </div>
 
-<form method="get" class="search-row">
+<div class="search-row">
   <div class="search-box">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search by client name or NIN...">
+    <input type="text" id="clientSearch" value="{{ request.GET.q }}" placeholder="Search by name, NIN or phone..." autocomplete="off">
   </div>
-</form>
+</div>
 
 <!-- DESKTOP TABLE -->
-<div class="client-table-wrap desktop-client-table">
+<div class="client-table-wrap desktop-client-table" id="desktopWrap">
   <div style="overflow-x:auto">
   <table>
     <thead><tr><th>CLIENT NAME</th><th>PHONE</th><th>NIN</th><th>VILLAGE</th><th>ACTION</th></tr></thead>
-    <tbody>
+    <tbody id="clientTableBody">
       {% for client in clients %}
-      <tr>
+      <tr class="client-row" data-search="{{ client.full_name|lower }} {{ client.nin|lower }} {{ client.telephone_number }} {{ client.village|lower }} {{ client.district|lower }}">
         <td style="font-weight:600">{{ client.full_name }}</td>
         <td>{{ client.telephone_number }}</td>
         <td>{{ client.nin }}</td>
@@ -59,20 +61,74 @@
     </tbody>
   </table>
   </div>
+  <div id="desktopNoResults" class="no-results">No clients matching your search</div>
 </div>
 
 <!-- MOBILE CARDS -->
-<div class="mobile-client-cards">
+<div class="mobile-client-cards" id="mobileWrap">
   {% for client in clients %}
-  <div class="m-client" onclick="window.location.href='{% url 'clients:detail' client.pk %}'">
+  <div class="m-client client-card" data-search="{{ client.full_name|lower }} {{ client.nin|lower }} {{ client.telephone_number }} {{ client.village|lower }} {{ client.district|lower }}" onclick="window.location.href='{% url 'clients:detail' client.pk %}'">
     <div class="m-client-name">{{ client.full_name }}</div>
-    <div class="m-client-row">📞 {{ client.telephone_number }}</div>
-    <div class="m-client-row">🪪 NIN: {{ client.nin }}</div>
-    <div class="m-client-row">📍 {{ client.village }}, {{ client.district }}</div>
+    
+    <div class="m-client-row">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <span>{{ client.telephone_number }}</span>
+    </div>
+
+    <div class="m-client-row">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="8" y1="12" x2="8.01" y2="12"/><line x1="12" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>
+      <span>NIN: {{ client.nin }}</span>
+    </div>
+
+    <div class="m-client-row">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>{{ client.village|default:"-" }}, {{ client.district }}</span>
+    </div>
   </div>
   {% empty %}
-  <p style="text-align:center;color:#6b7280">No clients yet</p>
+  <p style="text-align:center;color:#6b7280;padding:20px">No clients yet</p>
   {% endfor %}
+  <div id="mobileNoResults" class="no-results">No clients matching your search</div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const searchInput = document.getElementById('clientSearch');
+  const rows = document.querySelectorAll('.client-row');
+  const cards = document.querySelectorAll('.client-card');
+  const countEl = document.getElementById('clientCount');
+  const total = rows.length;
+  const desktopNo = document.getElementById('desktopNoResults');
+  const mobileNo = document.getElementById('mobileNoResults');
+
+  function filterClients(){
+    const q = searchInput.value.toLowerCase().trim();
+    let visible = 0;
+
+    rows.forEach(r => {
+      const match = r.dataset.search.includes(q);
+      r.style.display = match ? '' : 'none';
+      if(match) visible++;
+    });
+
+    cards.forEach(c => {
+      const match = c.dataset.search.includes(q);
+      c.style.display = match ? '' : 'none';
+    });
+
+    // counter
+    if(countEl) countEl.textContent = `(${visible})`;
+
+    // no results message
+    if(desktopNo) desktopNo.style.display = visible === 0 && total > 0 ? 'block' : 'none';
+    if(mobileNo) mobileNo.style.display = visible === 0 && total > 0 ? 'block' : 'none';
+  }
+
+  searchInput.addEventListener('input', filterClients);
+  
+  // run once if q is prefilled from GET
+  if(searchInput.value) filterClients();
+});
+</script>
 
 {% endblock content %}

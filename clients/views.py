@@ -87,6 +87,8 @@ def add_loan_for_client(request, client_id):
             print("Loan create error:", e)
     return redirect('clients:detail', pk=client_id)
 
+from django.db.models import Q
+
 @login_required
 def client_search_api(request):
     q = request.GET.get('q','').strip()
@@ -94,25 +96,22 @@ def client_search_api(request):
     
     if q:
         clients = clients.filter(
-            Q(first_name__icontains=q) | 
-            Q(last_name__icontains=q) | 
+            Q(full_name__icontains=q) | 
             Q(nin__icontains=q) | 
             Q(telephone_number__icontains=q)
         )
     
-    clients = clients.order_by('first_name')[:50]
+    clients = clients.order_by('full_name')[:50]
     
     data = []
     for c in clients:
-        name = f"{c.first_name} {c.last_name}".strip()
         data.append({
             "id": c.id,
-            "name": name,
+            "name": c.full_name,
             "code": c.nin or f"C-{c.id}",
             "phone": c.telephone_number or ""
         })
     return JsonResponse(data, safe=False)
-    
     
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -153,7 +152,7 @@ def add_new_client(request):
             branch_id = request.POST.get('branch')
             if not branch_id:
                 messages.error(request, "Please select a branch")
-                return render(request, 'clients/add.html', {
+                return render(request, 'clients/add_client.html', {
                     'branches': branches,
                     'can_choose_branch': can_choose_branch,
                     'user_branch': user_branch
@@ -161,7 +160,7 @@ def add_new_client(request):
             branch = Branch.objects.filter(id=branch_id).first()
             if not branch:
                 messages.error(request, "Invalid branch selected")
-                return render(request, 'clients/add.html', {
+                return render(request, 'clients/add_client.html', {
                     'branches': branches,
                     'can_choose_branch': can_choose_branch,
                     'user_branch': user_branch
@@ -174,22 +173,25 @@ def add_new_client(request):
                 branch = Branch.objects.first()
             if not branch:
                 messages.error(request, "Your account has no branch. Contact admin to assign you a branch.")
-                return redirect('clients:add')
+                return redirect('clients:add_new_client')
 
         try:
             client = Client(
-                first_name=request.POST.get('first_name','').strip(),
-                last_name=request.POST.get('last_name','').strip(),
+                full_name=request.POST.get('full_name','').strip(),
                 telephone_number=request.POST.get('telephone_number'),
-                nin=request.POST.get('nin'),
+                nin=request.POST.get('nin','').strip(),
                 district=request.POST.get('district'),
                 parish=request.POST.get('parish'),
                 village=request.POST.get('village'),
                 landmark=request.POST.get('landmark'),
                 sub_county=request.POST.get('sub_county'),
-                branch=branch,  # <-- Now always set, no more IntegrityError
+                branch=branch,
                 assigned_field_officer=request.user
             )
+            # handle passport photo
+            if request.FILES.get('passport_photo'):
+                client.passport_photo = request.FILES.get('passport_photo')
+                
             client.save()
             messages.success(request, f"Client {client.full_name} added to {branch.name}")
             return redirect('clients:list')

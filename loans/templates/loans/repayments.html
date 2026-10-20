@@ -19,8 +19,8 @@
   .row-error{font-size:10px;color:#ef4444;font-weight:600;display:none;margin-top:3px}
   .row-saved{background:#ecfdf5 !important}
   .row-saved td{opacity:0.6}
-  .confirm-wrap{padding:16px;display:flex;gap:10px;background:white}
-  .btn-confirm{flex:1;background:#1e4a8a;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer}
+  .confirm-wrap{padding:16px;display:flex;gap:10px;background:white;position:sticky;bottom:0;z-index:10}
+  .btn-confirm{flex:1;background:#1e4a8a;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:8px}
   .btn-confirm:disabled{background:#9ca3af}
   .btn-clear{padding:14px 20px;border:1px solid #d1d5db;background:white;border-radius:10px;font-weight:600;cursor:pointer}
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;justify-content:center;align-items:flex-end}
@@ -32,10 +32,19 @@
   .badge-disbursed{background:#DBEAFE;color:#1E40AF;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
   .badge-defaulted{background:#7F1D1D;color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
   .balance-text{font-size:11px;color:#6b7280}
+  /* Toast */
+  #toast-container{position:fixed;top:16px;right:16px;z-index:9999;width:90%;max-width:360px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+  .toast{pointer-events:auto;background:#111827;color:white;padding:12px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;animation:slideIn .25s ease-out}
+  .toast.success{background:#16a34a} .toast.error{background:#dc2626}
+  @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 {% endblock extra-css %}
 
 {% block content %}
+<div id="toast-container"></div>
+
 <div class="repay-card">
   <div class="repay-head">
     <span>Repayments ({{ loans|length }}) • {{ disbursed_count }} Active • {{ defaulted_count }} Defaulted</span>
@@ -97,43 +106,58 @@
   </div>
   <div class="confirm-wrap">
     <button class="btn-clear" onclick="clearAll()">Clear</button>
-    <button class="btn-confirm" id="confirmBtn" onclick="openModal()">Confirm Payments</button>
+    <button class="btn-confirm" id="confirmBtn" onclick="openModal()" disabled>Confirm Payments</button>
   </div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3>Confirm Payments</h3><span onclick="closeModal()" style="font-size:24px;cursor:pointer">×</span>
+  <div class="modal" id="modalBox">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px" id="modalHeader">
+      <h3 style="font-weight:700">Confirm Payments</h3><span onclick="closeModal()" style="font-size:24px;cursor:pointer">×</span>
     </div>
     <div id="modalContent"></div>
-    <div style="display:flex;gap:12px;margin-top:20px">
+    <div style="display:flex;gap:12px;margin-top:20px" id="modalActions">
       <button class="btn-clear" style="flex:1" onclick="closeModal()">Cancel</button>
-      <button class="btn-confirm" style="flex:1" onclick="submitPayments()">Submit All</button>
+      <button class="btn-confirm" style="flex:1" id="modalSubmitBtn" onclick="submitPayments()">Submit All</button>
     </div>
   </div>
 </div>
 
 <script>
 const CSRF = "{{ csrf_token }}";
+const CHECK_BOOK_URL = "{% url 'loans:check_book_number' %}";
+const BULK_URL = "{% url 'loans:bulk_repayment_submit' %}";
+
+function showToast(message, type='success'){
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${type==='success'?'✅':'❌'}</span><span style="flex:1">${message}</span><span onclick="this.parentElement.remove()" style="opacity:.7;cursor:pointer">✕</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(100%)'; setTimeout(()=>t.remove(),300)}, 4000);
+}
+
 function getBookStatus(book){
-  return fetch(`{% url 'loans:check_book_number' %}?book_number=${encodeURIComponent(book)}`).then(r=>r.json());
+  return fetch(`${CHECK_BOOK_URL}?book_number=${encodeURIComponent(book)}`).then(r=>r.json());
 }
 function updateCount(){
   let c=0; document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
-    const b=tr.querySelector('.book-field').value.trim(); const a=tr.querySelector('.amount-field').value.trim(); if(b&&a) c++;
+    const b=tr.querySelector('.book-field')?.value.trim(); const a=tr.querySelector('.amount-field')?.value.trim(); if(b&&a) c++;
   });
   document.getElementById('countText').textContent=c+' entered';
-  document.getElementById('confirmBtn').disabled=c===0;
-  document.getElementById('confirmBtn').textContent=c===0?'Confirm Payments':`Confirm ${c} Payments`;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled=c===0;
+  btn.textContent=c===0?'Confirm Payments':`Confirm ${c} Payments`;
 }
 document.querySelectorAll('.book-field').forEach(inp=>{
   inp.addEventListener('blur', async function(){
     const val=this.value.trim(); if(!val) return;
-    const res=await getBookStatus(val);
-    const err=this.parentElement.querySelector('.row-error');
-    if(res.exists){ this.classList.add('is-invalid'); this.classList.remove('is-valid'); err.textContent='Book #'+val+' already used!'; err.style.display='block'; }
-    else { this.classList.remove('is-invalid'); this.classList.add('is-valid'); err.style.display='none'; }
+    try{
+      const res=await getBookStatus(val);
+      const err=this.parentElement.querySelector('.row-error');
+      if(res.exists){ this.classList.add('is-invalid'); this.classList.remove('is-valid'); err.textContent='Book #'+val+' already used!'; err.style.display='block'; }
+      else { this.classList.remove('is-invalid'); this.classList.add('is-valid'); err.style.display='none'; }
+    }catch(e){}
   });
   inp.addEventListener('input', updateCount);
 });
@@ -142,34 +166,100 @@ document.querySelectorAll('.amount-field').forEach(i=>i.addEventListener('input'
 document.querySelectorAll('.filter-row input[data-col]').forEach(inp=>{
   inp.addEventListener('input', function(){
     const col=this.dataset.col; const val=this.value.toLowerCase();
-    document.querySelectorAll('#repayTable tbody tr').forEach(tr=>{
-      let txt=''; if(col==='client') txt=tr.dataset.client; if(col==='loan') txt=tr.dataset.loan; if(col==='date') txt=tr.cells[5].innerText; if(col==='status') txt=tr.cells[6].innerText;
+    document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
+      let txt=''; if(col==='client') txt=tr.dataset.client||''; if(col==='loan') txt=tr.dataset.loan||''; if(col==='date') txt=tr.cells[5]?.innerText||''; if(col==='status') txt=tr.cells[6]?.innerText||'';
       tr.style.display=val===''||txt.toLowerCase().includes(val)?'':'none';
     });
   });
 });
+
 function openModal(){
   let html=''; let total=0; let count=0;
   document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
-    const book=tr.querySelector('.book-field').value.trim(); const amount=tr.querySelector('.amount-field').value.trim();
+    const book=tr.querySelector('.book-field')?.value.trim(); const amount=tr.querySelector('.amount-field')?.value.trim();
     if(book&&amount){ count++; total+=parseInt(amount)||0; html+=`<div class="modal-item"><div><div style="font-weight:700">${tr.dataset.client}</div><div style="font-size:12px;color:#6b7280">Book #${book} • ${tr.dataset.loan}</div></div><strong>UGX ${parseInt(amount).toLocaleString()}</strong></div>`; }
   });
-  if(count===0) html='<p style="text-align:center;color:#6b7280;padding:20px">No payments entered</p>';
-  else html+=`<div style="margin-top:12px;padding:12px;background:#f0f7ff;border-radius:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total (${count})</span><span>UGX ${total.toLocaleString()}</span></div>`;
-  document.getElementById('modalContent').innerHTML=html; document.getElementById('modalOverlay').classList.add('show');
+  if(count===0){ html='<p style="text-align:center;color:#6b7280;padding:20px">No payments entered</p>'; document.getElementById('modalSubmitBtn').disabled=true; }
+  else { html+=`<div style="margin-top:12px;padding:12px;background:#f0f7ff;border-radius:8px;display:flex;justify-content:space-between;font-weight:800"><span>Total (${count})</span><span>UGX ${total.toLocaleString()}</span></div>`; document.getElementById('modalSubmitBtn').disabled=false; }
+  document.getElementById('modalHeader').style.display='flex';
+  document.getElementById('modalActions').style.display='flex';
+  document.getElementById('modalSubmitBtn').innerHTML=`Submit ${count} Payments`;
+  document.getElementById('modalContent').innerHTML=html; 
+  document.getElementById('modalOverlay').classList.add('show');
 }
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
+
 async function submitPayments(){
-  const payload=[]; document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
-    const book=tr.querySelector('.book-field').value.trim(); const amount=tr.querySelector('.amount-field').value.trim(); const loan_id=tr.dataset.loanId;
+  const payload=[]; 
+  document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
+    const book=tr.querySelector('.book-field')?.value.trim(); const amount=tr.querySelector('.amount-field')?.value.trim(); const loan_id=tr.dataset.loanId;
     if(book&&amount) payload.push({book_number:book, loan_id:loan_id, amount:amount});
   });
   if(payload.length===0) return;
-  const res=await fetch("{% url 'loans:bulk_repayment_submit' %}", {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF}, body:JSON.stringify({repayments:payload})});
-  const data=await res.json();
-  if(data.success){ alert(`Saved ${data.saved} payments`); location.reload(); } else { alert('Error: '+ (data.error||data.errors)); }
+  
+  const btn = document.getElementById('modalSubmitBtn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = `<span class="spinner"></span> Saving ${payload.length}...`;
+  btn.disabled = true;
+
+  try{
+    const res=await fetch(BULK_URL, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'}, body:JSON.stringify({repayments:payload})});
+    const data=await res.json();
+    if(data.success){
+      // SUCCESS STATE - replaces modal content (Layer 1)
+      const listHtml = (data.breakdown||[]).map(b=>`<div class="flex justify-between text-[13px] py-1.5 border-b border-gray-100"><span>${b.client} • Book #${b.book_number}</span><span class="font-bold">UGX ${parseInt(b.amount).toLocaleString()}</span></div>`).join('');
+      document.getElementById('modalHeader').style.display='none';
+      document.getElementById('modalActions').style.display='none';
+      document.getElementById('modalContent').innerHTML = `
+        <div class="text-center py-2">
+          <div style="font-size:48px">✅</div>
+          <h3 style="font-weight:800;font-size:18px;margin-top:8px">${data.saved} Payments Recorded</h3>
+          <p style="color:#6b7280;font-size:13px;margin-top:4px">UGX ${data.total_formatted} total saved</p>
+          <div style="text-align:left;margin-top:16px;background:#f9fafb;border-radius:10px;padding:12px;max-height:160px;overflow:auto">${listHtml||''}</div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button onclick="handleSuccessClose()" class="btn-clear" style="flex:1">Add More</button>
+            <a href="{% url 'dashboard:index' %}" class="btn-confirm" style="flex:1;text-decoration:none">View Receipts</a>
+          </div>
+        </div>`;
+
+      // Toast on main page (Layer 2)
+      showToast(data.message, 'success');
+    } else {
+      showToast('Error: ' + (data.error || data.errors?.join(', ') || 'Failed'), 'error');
+      btn.innerHTML = orig; btn.disabled = false;
+    }
+  } catch(err){
+    showToast('Network error - check connection', 'error');
+    btn.innerHTML = orig; btn.disabled = false;
+  }
 }
-function clearAll(){ document.querySelectorAll('.book-field, .amount-field').forEach(i=>{i.value=''; i.disabled=false; i.classList.remove('is-invalid','is-valid');}); document.querySelectorAll('.row-error').forEach(e=>e.style.display='none'); updateCount(); }
+
+function handleSuccessClose(){
+  closeModal();
+  // Clear inputs + mark saved rows
+  document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
+    const b=tr.querySelector('.book-field'); const a=tr.querySelector('.amount-field');
+    if(b?.value.trim() && a?.value.trim()){
+      tr.classList.add('row-saved');
+      b.value=''; a.value=''; b.classList.remove('is-valid','is-invalid');
+    }
+  });
+  updateCount();
+}
+
+function clearAll(){ 
+  document.querySelectorAll('.book-field, .amount-field').forEach(i=>{i.value=''; i.disabled=false; i.classList.remove('is-invalid','is-valid');}); 
+  document.querySelectorAll('.row-error').forEach(e=>e.style.display='none'); 
+  document.querySelectorAll('#repayTable tbody tr').forEach(tr=>tr.classList.remove('row-saved'));
+  updateCount(); 
+}
 updateCount();
+
+// Django messages -> toast fallback
+{% if messages %}
+  {% for message in messages %}
+    showToast("{{ message|escapejs }}", "{{ message.tags|default:'success' }}");
+  {% endfor %}
+{% endif %}
 </script>
 {% endblock content %}

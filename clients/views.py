@@ -8,14 +8,28 @@ from django.http import JsonResponse
 from loans.models import Loan
 from .models import Client
 from .forms import ClientEntryForm
+from users.models import Branch
+
+def get_user_branch(user):
+    if hasattr(user, 'profile') and hasattr(user.profile, 'branch') and user.profile.branch:
+        return user.profile.branch
+    if hasattr(user, 'branch') and user.branch:
+        return user.branch
+    if hasattr(user, 'staff_profile') and hasattr(user.staff_profile, 'branch'):
+        return user.staff_profile.branch
+    return None
+
+def is_branch_manager(user):
+    if user.is_superuser:
+        return True
+    if user.groups.filter(name__in=['Company Owner', 'Owner', 'Admin']).exists():
+        return True
+    if hasattr(user, 'profile') and getattr(user.profile, 'role', '') in ['owner', 'company_owner', 'admin']:
+        return True
+    return False
 
 @login_required
 def staff_dashboard(request):
-    from django.db.models import Sum
-    from decimal import Decimal
-    from django.utils import timezone
-
-    # FORCE all clients, no branch filter at all for debug
     all_clients_qs = Client.objects.all().order_by('id')[:200]
     
     print(f"DEBUG: Client.objects.count() = {Client.objects.count()}")
@@ -48,20 +62,24 @@ def staff_dashboard(request):
         'at_risk_count': at_risk_count,
         'todays_due': collections_today,
         'recent_loans': recent_loans,
-        'all_clients': all_clients_qs,  # this is what the FAB uses
+        'all_clients': all_clients_qs,
     }
     return render(request, 'dashboard.html', context)
-    
 
 @login_required
 def client_list(request):
-    q = request.GET.get('q', '')
+    q = request.GET.get('q', '').strip()
     clients = Client.objects.select_related('branch', 'assigned_field_officer').all()
     if q:
+        # SAFE: searches both new full_name AND old fields
         clients = clients.filter(
-            Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(nin__icontains=q)
+            Q(full_name__icontains=q) | 
+            Q(first_name__icontains=q) | 
+            Q(last_name__icontains=q) | 
+            Q(nin__icontains=q) |
+            Q(telephone_number__icontains=q)
         )
-    return render(request, 'clients/client_list.html', {'clients': clients})
+    return render(request, 'clients/client_list.html', {'clients': clients, 'q': q})
 
 @login_required
 def client_detail(request, pk):
@@ -94,17 +112,20 @@ def client_search_api(request):
     
     if q:
         clients = clients.filter(
+            Q(full_name__icontains=q) | 
             Q(first_name__icontains=q) | 
             Q(last_name__icontains=q) | 
             Q(nin__icontains=q) | 
             Q(telephone_number__icontains=q)
         )
     
-    clients = clients.order_by('first_name')[:50]
+    # SAFE ordering: full_name exists now
+    clients = clients.order_by('full_name')[:50]
     
     data = []
     for c in clients:
-        name = f"{c.first_name} {c.last_name}".strip()
+        # Use new field first, fallback to old
+        name = c.full_name or f"{c.first_name} {c.last_name}".strip()
         data.append({
             "id": c.id,
             "name": name,
@@ -112,33 +133,6 @@ def client_search_api(request):
             "phone": c.telephone_number or ""
         })
     return JsonResponse(data, safe=False)
-    
-    
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .models import Client
-from users.models import Branch  # <-- FIXED: Branch is in users, not branches
-
-def get_user_branch(user):
-    # where does your user store branch? Check all possibilities
-    if hasattr(user, 'profile') and hasattr(user.profile, 'branch') and user.profile.branch:
-        return user.profile.branch
-    if hasattr(user, 'branch') and user.branch:
-        return user.branch
-    if hasattr(user, 'staff_profile') and hasattr(user.staff_profile, 'branch'):
-        return user.staff_profile.branch
-    return None
-
-def is_branch_manager(user):
-    if user.is_superuser:
-        return True
-    # adjust if your Company Owner role is stored differently
-    if user.groups.filter(name__in=['Company Owner', 'Owner', 'Admin']).exists():
-        return True
-    if hasattr(user, 'profile') and getattr(user.profile, 'role', '') in ['owner', 'company_owner', 'admin']:
-        return True
-    return False
 
 @login_required
 def add_new_client(request):
@@ -167,10 +161,8 @@ def add_new_client(request):
                     'user_branch': user_branch
                 })
         else:
-            # Normal user: auto-assign their branch
             branch = user_branch
             if not branch:
-                # last fallback - first branch in system
                 branch = Branch.objects.first()
             if not branch:
                 messages.error(request, "Your account has no branch. Contact admin to assign you a branch.")
@@ -180,6 +172,7 @@ def add_new_client(request):
             client = Client(
                 first_name=request.POST.get('first_name','').strip(),
                 last_name=request.POST.get('last_name','').strip(),
+                # full_name will auto-fill in save() method
                 telephone_number=request.POST.get('telephone_number'),
                 nin=request.POST.get('nin'),
                 district=request.POST.get('district'),
@@ -187,10 +180,10 @@ def add_new_client(request):
                 village=request.POST.get('village'),
                 landmark=request.POST.get('landmark'),
                 sub_county=request.POST.get('sub_county'),
-                branch=branch,  # <-- Now always set, no more IntegrityError
+                branch=branch,
                 assigned_field_officer=request.user
             )
-            client.save()
+            client.save() # save() will auto-create full_name
             messages.success(request, f"Client {client.full_name} added to {branch.name}")
             return redirect('clients:list')
         except Exception as e:

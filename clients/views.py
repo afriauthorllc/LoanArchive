@@ -105,6 +105,8 @@ def add_loan_for_client(request, client_id):
             print("Loan create error:", e)
     return redirect('clients:detail', pk=client_id)
 
+from django.db.models import Q
+
 @login_required
 def client_search_api(request):
     q = request.GET.get('q','').strip()
@@ -113,27 +115,22 @@ def client_search_api(request):
     if q:
         clients = clients.filter(
             Q(full_name__icontains=q) | 
-            Q(first_name__icontains=q) | 
-            Q(last_name__icontains=q) | 
             Q(nin__icontains=q) | 
             Q(telephone_number__icontains=q)
         )
     
-    # SAFE ordering: full_name exists now
     clients = clients.order_by('full_name')[:50]
     
     data = []
     for c in clients:
-        # Use new field first, fallback to old
-        name = c.full_name or f"{c.first_name} {c.last_name}".strip()
         data.append({
             "id": c.id,
-            "name": name,
+            "name": c.full_name,
             "code": c.nin or f"C-{c.id}",
             "phone": c.telephone_number or ""
         })
     return JsonResponse(data, safe=False)
-
+    
 @login_required
 def add_new_client(request):
     can_choose_branch = is_branch_manager(request.user)
@@ -147,7 +144,7 @@ def add_new_client(request):
             branch_id = request.POST.get('branch')
             if not branch_id:
                 messages.error(request, "Please select a branch")
-                return render(request, 'clients/add.html', {
+                return render(request, 'clients/add_client.html', {
                     'branches': branches,
                     'can_choose_branch': can_choose_branch,
                     'user_branch': user_branch
@@ -155,26 +152,26 @@ def add_new_client(request):
             branch = Branch.objects.filter(id=branch_id).first()
             if not branch:
                 messages.error(request, "Invalid branch selected")
-                return render(request, 'clients/add.html', {
+                return render(request, 'clients/add_client.html', {
                     'branches': branches,
                     'can_choose_branch': can_choose_branch,
                     'user_branch': user_branch
                 })
         else:
+            # Normal user: auto-assign their branch
             branch = user_branch
             if not branch:
+                # last fallback - first branch in system
                 branch = Branch.objects.first()
             if not branch:
                 messages.error(request, "Your account has no branch. Contact admin to assign you a branch.")
-                return redirect('clients:add')
+                return redirect('clients:add_new_client')
 
         try:
             client = Client(
-                first_name=request.POST.get('first_name','').strip(),
-                last_name=request.POST.get('last_name','').strip(),
-                # full_name will auto-fill in save() method
+                full_name=request.POST.get('full_name','').strip(),
                 telephone_number=request.POST.get('telephone_number'),
-                nin=request.POST.get('nin'),
+                nin=request.POST.get('nin','').strip(),
                 district=request.POST.get('district'),
                 parish=request.POST.get('parish'),
                 village=request.POST.get('village'),
@@ -183,7 +180,11 @@ def add_new_client(request):
                 branch=branch,
                 assigned_field_officer=request.user
             )
-            client.save() # save() will auto-create full_name
+            # handle passport photo
+            if request.FILES.get('passport_photo'):
+                client.passport_photo = request.FILES.get('passport_photo')
+                
+            client.save()
             messages.success(request, f"Client {client.full_name} added to {branch.name}")
             return redirect('clients:list')
         except Exception as e:

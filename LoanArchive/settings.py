@@ -160,11 +160,11 @@ STORAGES = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",  # <- no compression
+        "BACKEND": "whitenoise.storage.StaticFilesStorage",
     },
 }
 
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 # Compat fix for django-cloudinary-storage bug
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

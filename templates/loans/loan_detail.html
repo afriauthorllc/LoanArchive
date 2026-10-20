@@ -17,6 +17,7 @@
 .bar{height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden;margin:10px 0}
 .fill{height:100%;background:var(--blue);border-radius:99px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
 .info{background:white;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
 .info h4{font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:12px;letter-spacing:.5px}
 .row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f6f7f8;font-size:13px}
@@ -35,7 +36,7 @@
 .input-book::-webkit-outer-spin-button,.input-book::-webkit-inner-spin-button,.input-amount::-webkit-outer-spin-button,.input-amount::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .input-book[type=number],.input-amount[type=number]{-moz-appearance:textfield}
 .row-error{font-size:11px;color:#ef4444;font-weight:600;display:none;margin-top:4px}
-@media(max-width:768px){.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+@media(max-width:768px){.grid4{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}}
 </style>
 
 <div class="top-bar">
@@ -69,7 +70,7 @@
   {% endif %}
 </div>
 
-<div class="grid2">
+<div class="grid3">
   <div class="info">
     <h4>Loan Details</h4>
     <div class="row"><span>Loan ID</span><b>LN-{{ loan.id|stringformat:"04d" }}</b></div>
@@ -93,6 +94,23 @@
       <a href="{% url 'clients:detail' client.pk %}" class="btn btn-outline" style="flex:1;text-align:center;text-decoration:none">View Client</a>
       {% if loan.status == 'DISBURSED' or loan.status == 'DEFAULTED' %}<button onclick="openModal()" class="btn btn-blue">Add Repayment</button>{% endif %}
     </div>
+  </div>
+  <div class="info" style="border-left:3px solid var(--blue)">
+    <h4>👥 Guarantor Details</h4>
+    {% if loan.guarantor_name %}
+      <div class="row"><span>Name</span><b>{{ loan.guarantor_name }}</b></div>
+      <div class="row"><span>NIN</span><span>{{ loan.guarantor_nin }}</span></div>
+      <div class="row"><span>Phone</span><span><a href="tel:{{ loan.guarantor_telephone }}" style="color:var(--blue);text-decoration:none;font-weight:700">{{ loan.guarantor_telephone }}</a></span></div>
+      <div class="row"><span>Relationship</span><span style="background:#eef2ff;padding:3px 8px;border-radius:10px;font-weight:700;font-size:11px">{{ loan.get_guarantor_relationship_display }}</span></div>
+      <div style="margin-top:12px;background:#f0f9ff;padding:10px;border-radius:8px;font-size:11px;color:#374151">
+        <b>Note:</b> Guarantor is liable if client defaults. Contact for recovery.
+      </div>
+    {% else %}
+      <div style="text-align:center;padding:20px;color:#9ca3af">
+        <div style="font-size:24px;margin-bottom:6px">👤</div>
+        <div style="font-size:12px">No guarantor recorded<br><span style="font-size:11px">(Old loan before guarantor feature)</span></div>
+      </div>
+    {% endif %}
   </div>
 </div>
 

@@ -61,10 +61,24 @@ def create_loan(request):
 def create_loan_application(request):
     if request.method == 'POST':
         client = get_object_or_404(Client, pk=request.POST.get('client_id'))
-        Loan.objects.create(client=client, branch=client.branch, principal_amount=Decimal(request.POST.get('principal_amount')), interest_rate=Decimal(request.POST.get('interest_rate')), duration_months=int(request.POST.get('duration_months') or 6), collateral_details=request.POST.get('collateral_details'), status=Loan.Status.PENDING, created_by_officer=request.user)
+        Loan.objects.create(
+            client=client, 
+            branch=client.branch, 
+            principal_amount=Decimal(request.POST.get('principal_amount')), 
+            interest_rate=Decimal(request.POST.get('interest_rate')), 
+            duration_months=int(request.POST.get('duration_months') or 6), 
+            collateral_details=request.POST.get('collateral_details'),
+            # 👥 Guarantor fields
+            guarantor_name=request.POST.get('guarantor_name','').strip(),
+            guarantor_nin=request.POST.get('guarantor_nin','').upper().strip(),
+            guarantor_telephone=request.POST.get('guarantor_telephone','').strip(),
+            guarantor_relationship=request.POST.get('guarantor_relationship'),
+            status=Loan.Status.PENDING, 
+            created_by_officer=request.user
+        )
         return redirect(request.POST.get('next') or '/')
     return redirect('/')
-
+    
 @login_required
 def client_search_api(request):
     q = request.GET.get('q','').strip()

@@ -1,8 +1,18 @@
 from decimal import Decimal
+import re
 from django.db import models
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+
+# reuse your existing phone normalizer if you have it
+def normalize_phone_number(phone):
+    try:
+        from clients.models import normalize_phone_number as norm
+        return norm(phone)
+    except Exception:
+        return phone.strip() if phone else phone
 
 class Loan(models.Model):
     """
@@ -16,6 +26,15 @@ class Loan(models.Model):
         FULLY_PAID = 'FULLY_PAID', _('Fully Paid')
         DEFAULTED = 'DEFAULTED', _('Defaulted')
 
+    class Relationship(models.TextChoices):
+        FAMILY = 'FAMILY', _('Family Member')
+        FRIEND = 'FRIEND', _('Friend')
+        COLLEAGUE = 'COLLEAGUE', _('Work Colleague')
+        SPOUSE = 'SPOUSE', _('Spouse')
+        PARENT = 'PARENT', _('Parent')
+        SIBLING = 'SIBLING', _('Sibling')
+        OTHER = 'OTHER', _('Other')
+
     # 🔗 Account Relationships
     client = models.ForeignKey(
         'clients.Client', 
@@ -28,7 +47,7 @@ class Loan(models.Model):
         related_name='loans'
     )
 
-    # 💰 Financial Particulars (Using Decimal for financial accuracy)
+    # 💰 Financial Particulars
     principal_amount = models.DecimalField(
         max_digits=12, 
         decimal_places=2,
@@ -55,14 +74,43 @@ class Loan(models.Model):
         default=Status.PENDING
     )
 
+    # 👥 Guarantor Information - nullable so old loans don't break
+    guarantor_name = models.CharField(
+        max_length=150,
+        blank=True, null=True,
+        help_text=_("Full name of the guarantor.")
+    )
+    guarantor_nin = models.CharField(
+        max_length=14,
+        blank=True, null=True,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Z0-9]{14}$',
+                message=_("NIN must be 14 uppercase alphanumeric characters.")
+            )
+        ],
+        help_text=_("Guarantor's 14-character NIN.")
+    )
+    guarantor_telephone = models.CharField(
+        max_length=20,
+        blank=True, null=True,
+        help_text=_("Guarantor's phone contact.")
+    )
+    guarantor_relationship = models.CharField(
+        max_length=20,
+        choices=Relationship.choices,
+        blank=True, null=True,
+        help_text=_("Relationship of guarantor to client.")
+    )
+
     # 👥 Audit Trails & Governance
     created_by_officer = models.ForeignKey(
-    settings.AUTH_USER_MODEL,
-    on_delete=models.SET_NULL,
-    null=True,
-    related_name='created_loans',
-    help_text=_("The field officer who took the application.")
-)
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_loans',
+        help_text=_("The field officer who took the application.")
+    )
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -83,34 +131,36 @@ class Loan(models.Model):
         verbose_name = "Loan Application"
         verbose_name_plural = "Loan Applications"
 
+    def clean(self):
+        super().clean()
+        if self.guarantor_nin:
+            self.guarantor_nin = self.guarantor_nin.strip().upper()
+            if not re.match(r'^[A-Z0-9]{14}$', self.guarantor_nin):
+                raise ValidationError({'guarantor_nin': _("NIN must be a valid 14 character uppercase string.")})
+        
+        if self.guarantor_name:
+            self.guarantor_name = ' '.join(self.guarantor_name.strip().split()).title()
+        
+        if self.guarantor_telephone:
+            self.guarantor_telephone = normalize_phone_number(self.guarantor_telephone)
+
     @property
     def total_payable(self):
-        """Calculates simple flat interest total."""
         interest_amount = (self.principal_amount * (self.interest_rate / Decimal('100'))) * self.duration_months
         return self.principal_amount + interest_amount
-        
 
     def __str__(self):
         return f"Loan #{self.id} - {self.client.full_name} ({self.get_status_display()})"
         
     @property
     def total_repayments_made(self):
-        """
-        Dynamically aggregates the sum of all transaction logs recorded for this loan.
-        """
-        # We handle the import inside the method to cleanly bypass any potential circular import errors
         total = self.repayments.aggregate(models.Sum('amount_paid'))['amount_paid__sum']
         return total or Decimal('0.00')
 
     @property
     def outstanding_balance(self):
-        """
-        Computes the remaining debt balance (Total Payable minus Total Payments Made).
-        """
         balance = self.total_payable - self.total_repayments_made
-        # Safeguard against micro-fraction floating balance outputs under 0
         return max(balance, Decimal('0.00'))
-    
         
 from django.db import models
 from django.conf import settings

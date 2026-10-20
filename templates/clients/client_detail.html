@@ -25,13 +25,14 @@
 /* Modal - matches your UI */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;justify-content:center;align-items:flex-start;padding:20px 12px;overflow-y:auto}
 .modal-overlay.active{display:flex}
-.modal-box{background:white;border:1px solid var(--border);border-radius:12px;width:100%;max-width:420px;padding:16px;animation:slideUp .2s ease}
+.modal-box{background:white;border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;padding:16px;animation:slideUp .2s ease;max-height:90vh;overflow-y:auto}
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .input-group{margin-bottom:12px}
 .input-group label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
 .input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:white}
 .input:focus{border-color:var(--blue)}
+.section-title{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;margin:18px 0 10px 0;padding-top:14px;border-top:1px dashed #d1d5db}
 </style>
 
 <div class="top">
@@ -124,10 +125,43 @@
 
       <div class="input-group">
         <label>Collateral Details *</label>
-        <textarea name="collateral_details" class="input" rows="3" required placeholder="e.g., Motorcycle Logbook UBG 123X, Land agreement in..."></textarea>
+        <textarea name="collateral_details" class="input" rows="2" required placeholder="e.g., Motorcycle Logbook UBG 123X, Land agreement in..."></textarea>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:16px">
+      <!-- GUARANTOR SECTION -->
+      <div class="section-title">Guarantor Information</div>
+      
+      <div class="input-group">
+        <label>Guarantor's Name *</label>
+        <input type="text" name="guarantor_name" class="input" required placeholder="e.g. John Doe">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="input-group">
+          <label>Guarantor NIN *</label>
+          <input type="text" name="guarantor_nin" class="input" required maxlength="14" style="text-transform:uppercase" placeholder="CM123456789012" pattern="[A-Za-z0-9]{14}">
+        </div>
+        <div class="input-group">
+          <label>Telephone Number *</label>
+          <input type="text" name="guarantor_telephone" class="input" required placeholder="07XXXXXXXX">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Relationship to Client *</label>
+        <select name="guarantor_relationship" class="input" required>
+          <option value="">Select Relationship</option>
+          <option value="FAMILY">Family Member</option>
+          <option value="FRIEND">Friend</option>
+          <option value="COLLEAGUE">Work Colleague</option>
+          <option value="SPOUSE">Spouse</option>
+          <option value="PARENT">Parent</option>
+          <option value="SIBLING">Sibling</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:20px">
         <button type="button" onclick="closeLoanModal()" class="btn btn-outline" style="flex:1">Cancel</button>
         <button type="submit" class="btn btn-blue" style="flex:1">Create as Pending</button>
       </div>

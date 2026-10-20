@@ -1,6 +1,106 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% block content %}
+<style>
+/* --- LAYOUT FIX - stops blue header from being pushed --- */
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:14px;
+  max-width:100%;
+}
+.kpi{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:12px;
+  min-width:0;
+}
+.kpi-label{font-size:11px;color:#6b7280;font-weight:600}
+.kpi-value{font-size:20px;font-weight:800;margin-top:4px}
+.kpi-value.green{color:#059669}.kpi-value.yellow{color:#d97706}.kpi-value.blue{color:var(--blue)}.kpi-value.red{color:#dc2626}
+
+.card{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:14px;
+  max-width:100% !important;
+  width:100%;
+  overflow:hidden !important; /* clips table */
+  box-sizing:border-box;
+}
+.card-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 16px;
+  border-bottom:1px solid #f3f4f6;
+  font-weight:700;
+  font-size:13px;
+}
+.table-wrap{
+  display:block;
+  width:100%;
+  max-width:100%;
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
+.table-wrap table{
+  width:100%;
+  min-width:720px; /* scroll inside, not push page */
+  border-collapse:collapse;
+}
+.table-wrap th{
+  text-align:left;
+  font-size:11px;
+  color:#6b7280;
+  padding:10px 16px;
+  background:#f9fafb;
+  white-space:nowrap;
+}
+.table-wrap td{
+  padding:12px 16px;
+  font-size:13px;
+  border-top:1px solid #f3f4f6;
+  white-space:nowrap;
+}
+.status{padding:4px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.s-pending{background:#fef3c7;color:#92400e}.s-approved{background:#dbeafe;color:#1e40af}.s-disbursed{background:#d1fae5;color:#065f46}.s-fully_paid{background:#e0e7ff;color:#3730a3}.s-rejected{background:#f3f4f6;color:#4b5563}.s-defaulted{background:#fee2e2;color:#991b1b}
+.btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:white;font-size:12px;font-weight:600;cursor:pointer}
+.m-card{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #f3f4f6}
+.m-card .left{font-size:11px;color:#6b7280;line-height:20px}
+.m-card .right{font-size:12px;text-align:right;line-height:20px;font-weight:600}
+
+/* responsive switch */
+.desktop-only{display:block}
+.mobile-cards{display:none}
+@media(max-width:768px){
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .desktop-only{display:none !important}
+  .mobile-cards{display:block !important}
+}
+
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;justify-content:center;align-items:flex-start;padding:20px 12px;overflow-y:auto}
+.modal-overlay.active{display:flex}
+.modal-box{background:white;border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;padding:16px;max-height:90vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.back{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;display:grid;place-items:center;cursor:pointer;font-size:18px}
+.input-group{margin-bottom:12px;position:relative}
+.input-group label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;display:block;margin-bottom:6px}
+.input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:white;box-sizing:border-box}
+.client-results{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;z-index:9999;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
+.client-opt{padding:12px;border-bottom:1px solid #f3f4f6;cursor:pointer}
+.client-opt:hover{background:#eef2ff}
+.btn-modal{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-blue{background:var(--blue);color:white}
+.btn-outline{background:white;border:1px solid var(--border)}
+.section-title{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;margin:18px 0 10px 0;padding-top:14px;border-top:1px dashed #d1d5db}
+.fab{position:fixed;bottom:20px;right:20px;background:var(--blue);color:white;border:none;border-radius:24px;padding:12px 18px;font-weight:700;cursor:pointer;z-index:900;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+</style>
+
 <div class="kpi-grid">
 <div class="kpi"><div class="kpi-label">Active Loans</div><div class="kpi-value green">{{ active_loans }}</div></div>
 <div class="kpi"><div class="kpi-label">Pending Approvals</div><div class="kpi-value yellow">{{ pending_approvals }}</div></div>
@@ -13,37 +113,24 @@
   <span>Recent Loan Applications & Approvals</span>
   <a href="{% url 'loans:list' %}" style="color:var(--blue);font-size:11px;font-weight:600;text-decoration:none">View All →</a>
 </div>
-<div class="table-wrap desktop-only"><table><thead><tr><th>CLIENT NAME</th><th>LOAN ID</th><th>AMOUNT</th><th>DATE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
-{% for loan in recent_loans %}
-<tr><td style="font-weight:600">{{ loan.client.full_name }}</td><td>LN-{{ loan.id|stringformat:"04d" }}</td><td>UGX {{ loan.principal_amount|floatformat:0|intcomma }}</td><td>{{ loan.created_at|date:"M d, Y" }}</td><td><span class="status s-{{ loan.status|lower }}">{{ loan.status }}</span></td><td><button class="btn" onclick="window.location.href='/loans/{{ loan.id }}/'">View Details</button></td></tr>
-{% endfor %}
-</tbody></table></div>
+<div class="table-wrap desktop-only">
+  <table>
+    <thead><tr><th>CLIENT NAME</th><th>LOAN ID</th><th>AMOUNT</th><th>DATE</th><th>STATUS</th><th>ACTION</th></tr></thead>
+    <tbody>
+    {% for loan in recent_loans %}
+    <tr><td style="font-weight:600">{{ loan.client.full_name }}</td><td>LN-{{ loan.id|stringformat:"04d" }}</td><td>UGX {{ loan.principal_amount|floatformat:0|intcomma }}</td><td>{{ loan.applied_at|date:"M d, Y" }}</td><td><span class="status s-{{ loan.status|lower }}">{{ loan.status }}</span></td><td><button class="btn" onclick="window.location.href='/loans/{{ loan.id }}/'">View Details</button></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
 <div class="mobile-cards">
 {% for loan in recent_loans %}
-<div class="m-card" onclick="window.location.href='/loans/{{ loan.id }}/'" style="cursor:pointer"><div class="left"><b>Client Name</b><br><b>Loan ID</b><br><b>Amount</b><br><b>Status</b></div><div class="right">{{ loan.client.full_name }}<br>LN-{{ loan.id|stringformat:"04d" }}<br>UGX {{ loan.principal_amount|floatformat:0|intcomma }}<br><span class="status s-{{ loan.status|lower }}">{{ loan.status }}</span></div><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
+<div class="m-card" onclick="window.location.href='/loans/{{ loan.id }}/'" style="cursor:pointer"><div class="left"><b>Client Name</b><br><b>Loan ID</b><br><b>Amount</b><br><b>Status</b></div><div class="right">{{ loan.client.full_name }}<br>LN-{{ loan.id|stringformat:"04d" }}<br>UGX {{ loan.principal_amount|floatformat:0|intcomma }}<br><span class="status s-{{ loan.status|lower }}">{{ loan.status }}</span></div><svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>
 {% endfor %}
 </div>
 </div>
 
 <button class="fab" onclick="openGlobalLoanModal()">+ Create New Application</button>
-
-<style>
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;justify-content:center;align-items:flex-start;padding:20px 12px;overflow-y:auto}
-.modal-overlay.active{display:flex}
-.modal-box{background:white;border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;padding:16px;max-height:90vh;overflow-y:auto}
-.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.back{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:white;display:grid;place-items:center;cursor:pointer;font-size:18px}
-.input-group{margin-bottom:12px;position:relative}
-.input-group label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;display:block;margin-bottom:6px}
-.input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:white}
-.client-results{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;z-index:9999;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.15)}
-.client-opt{padding:12px;border-bottom:1px solid #f3f4f6;cursor:pointer}
-.client-opt:hover{background:#eef2ff}
-.btn-modal{padding:10px 16px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
-.btn-blue{background:var(--blue);color:white}
-.btn-outline{background:white;border:1px solid var(--border)}
-.section-title{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;margin:18px 0 10px 0;padding-top:14px;border-top:1px dashed #d1d5db}
-</style>
 
 <div id="globalLoanModal" class="modal-overlay" onclick="if(event.target==this) closeGlobalLoanModal()">
   <div class="modal-box">
@@ -54,8 +141,6 @@
     <form method="POST" action="{% url 'loans:create_application' %}">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.path }}">
-      
-      <!-- CLIENT & LOAN DETAILS -->
       <div class="input-group">
         <label>SEARCH & SELECT CLIENT *</label>
         <input type="text" id="clientSearchInput" class="input" placeholder="Type Peter, Grace..." autocomplete="off" required>
@@ -69,17 +154,12 @@
         <div class="input-group"><label>Interest Rate (%) *</label><input type="number" name="interest_rate" class="input" required value="10.00" step="0.01"></div>
       </div>
       <div class="input-group"><label>Collateral Details *</label><textarea name="collateral_details" class="input" rows="2" required placeholder="Motorcycle Logbook..."></textarea></div>
-
-      <!-- 👥 GUARANTOR SECTION -->
       <div class="section-title">Guarantor Information</div>
-      
       <div class="input-group"><label>Guarantor's Name *</label><input type="text" name="guarantor_name" class="input" required placeholder="e.g. John Doe"></div>
-      
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="input-group"><label>Guarantor NIN *</label><input type="text" name="guarantor_nin" class="input" required maxlength="14" style="text-transform:uppercase" placeholder="CM123456789012" pattern="[A-Za-z0-9]{14}"></div>
         <div class="input-group"><label>Telephone Number *</label><input type="text" name="guarantor_telephone" class="input" required placeholder="07XXXXXXXX"></div>
       </div>
-      
       <div class="input-group">
         <label>Relationship to Client *</label>
         <select name="guarantor_relationship" class="input" required>
@@ -93,7 +173,6 @@
           <option value="OTHER">Other</option>
         </select>
       </div>
-
       <div style="display:flex;gap:8px;margin-top:20px"><button type="button" onclick="closeGlobalLoanModal()" class="btn-modal btn-outline" style="flex:1">Cancel</button><button type="submit" class="btn-modal btn-blue" style="flex:1">Add as Pending</button></div>
     </form>
   </div>
@@ -105,16 +184,13 @@ let ALL_CLIENTS = [
     {id: {{ c.id }}, name: "{{ c.full_name|escapejs }}", code: "{{ c.nin|default:''|escapejs }}", phone: "{{ c.telephone_number|default:''|escapejs }}"},
   {% endfor %}
 ];
-
 function openGlobalLoanModal(){document.getElementById('globalLoanModal').classList.add('active');document.body.style.overflow='hidden';}
 function closeGlobalLoanModal(){document.getElementById('globalLoanModal').classList.remove('active');document.body.style.overflow='';document.getElementById('clientResults').style.display='none';}
-
 const sInput=document.getElementById('clientSearchInput');
 const rBox=document.getElementById('clientResults');
 const hId=document.getElementById('selectedClientId');
 const prev=document.getElementById('selectedClientPreview');
 let timer;
-
 function showClients(list, q){
   rBox.innerHTML='';
   if(list.length===0){
@@ -130,30 +206,23 @@ function showClients(list, q){
   }
   rBox.style.display='block';
 }
-
 sInput.addEventListener('input',function(){
   const q=this.value.trim();
   hId.value=''; prev.style.display='none';
   if(q.length<1){rBox.style.display='none';return;}
   clearTimeout(timer);
-  
   if(ALL_CLIENTS.length>0){
     const filtered = ALL_CLIENTS.filter(c => c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.toLowerCase().includes(q.toLowerCase()) || c.code.toLowerCase().includes(q.toLowerCase())).slice(0,20);
     showClients(filtered,q);
     return;
   }
-  
   timer=setTimeout(async()=>{
     try{
-      const res = await fetch(`/clients/api/search/?q=${encodeURIComponent(q)}`, {
-        credentials: 'same-origin',
-        headers: {'X-Requested-With': 'XMLHttpRequest'}
-      });
+      const res = await fetch(`/clients/api/search/?q=${encodeURIComponent(q)}`, {credentials: 'same-origin',headers: {'X-Requested-With': 'XMLHttpRequest'}});
       const text = await res.text();
       if(text.trim().startsWith('<')){
         rBox.innerHTML='<div style="padding:12px;color:red;font-size:11px">API returned HTML. <a href="/clients/api/search/?q='+encodeURIComponent(q)+'" target="_blank">Open API directly</a></div>';
-        rBox.style.display='block';
-        return;
+        rBox.style.display='block';return;
       }
       const data = JSON.parse(text);
       showClients(data,q);

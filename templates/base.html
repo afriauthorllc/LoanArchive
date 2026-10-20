@@ -7,9 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cloudflare.com">
 <style>
-  
-  
-
         :root {
             --primary: #0f4c81;
             --primary-dark: #0a365c;
@@ -17,7 +14,10 @@
             --border-color: #d1d5db;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
+        html, body {
+            max-width: 100vw;
+            overflow-x: hidden;
+        }
         
         .form-container {
             background: #ffffff;
@@ -39,15 +39,12 @@
         .form-body { padding: 1.5rem; }
         .form-group { margin-bottom: 1.25rem; }
         .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: #374151; }
-        
-        /* Direct widget CSS assignments target */
         .form-control {
             width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 0.375rem; font-size: 0.9rem;
         }
         .form-control:focus { outline: 2px solid #93c5fd; }
         .form-control-text { width: 100%; padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 0.375rem; font-size: 0.9rem; font-family: inherit; }
         .form-input-file { font-size: 0.85rem; margin-top: 0.25rem; }
-        
         .grid-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
         .form-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
         .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -60,7 +57,6 @@
             .grid-row { grid-template-columns: 1fr; gap: 0; }
         }
 
-  
 :root{--blue:#1e4a8a;--blue-dark:#163a6b;--blue-light:#e8eef7;--border:#e0e6ed;--bg:#f4f6f9;--green:#2e7d32;--yellow:#b8860b;--red:#c62828}
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Roboto',sans-serif}
 body{background:var(--bg);color:#1f2937}
@@ -75,22 +71,47 @@ body{background:var(--bg);color:#1f2937}
 .notif{position:relative;display:grid;place-items:center}
 .notif-dot{position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:9px;padding:2px 4px;border-radius:10px;font-weight:700}
 
-.layout{display:flex;min-height:calc(100vh - 56px)}
+/* --- FIXED LAYOUT --- */
+.layout{
+  display:flex;
+  min-height:calc(100vh - 56px);
+  width:100%;
+  max-width:100vw;
+  overflow-x:hidden;
+}
 .sidebar{width:220px;background:white;border-right:1px solid var(--border);padding-top:8px;flex-shrink:0}
 .side-link{display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#4b5563;cursor:pointer;border-left:3px solid transparent}
 .side-link.active{background:var(--blue-light);border-left-color:var(--blue);color:var(--blue);font-weight:500}
 .side-link.active .icon{color:var(--blue)}
 .side-link:hover{background:#f9fafb}
 
-.main{flex:1;padding:18px}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-.kpi{background:white;border:1px solid var(--border);border-radius:8px;padding:14px}
+/* THIS IS THE KEY FIX */
+.main{
+  flex:1;
+  min-width:0 !important;
+  width:0;
+  max-width:100%;
+  overflow-x:hidden;
+  padding:18px;
+  box-sizing:border-box;
+}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;max-width:100%}
+.kpi{background:white;border:1px solid var(--border);border-radius:8px;padding:14px;min-width:0}
 .kpi-label{font-size:12px;color:#6b7280;margin-bottom:6px}
 .kpi-value{font-size:18px;font-weight:700;display:flex;align-items:center;gap:6px}
 .kpi-value.green{color:var(--green)} .kpi-value.yellow{color:var(--yellow)} .kpi-value.blue{color:var(--blue-dark)} .kpi-value.red{color:var(--red)}
 
-.card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px}
-.card-head{padding:12px 14px;font-weight:500;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between}
+.card{background:white;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;max-width:100%;width:100%;}
+.card-head{padding:12px 14px;font-weight:500;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+
+/* TABLE WRAPPER FIX */
+.table-wrap{
+  display:block;
+  width:100%;
+  max-width:100%;
+  overflow-x:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{text-align:left;padding:10px 14px;background:#f9fafb;color:#6b7280;font-size:11px;text-transform:uppercase;white-space:nowrap}
 td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
@@ -100,24 +121,11 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
 .btn:hover{background:var(--blue);color:white}
 
 .mobile-cards,.bottom-nav,.fab,.mobile-only{display:none}
-    
-/* LOW - pale, lowest priority, waiting */
 .s-pending { background:#FEF3C7; color:#92400E; }
-
-
-/* MEDIUM-HIGH - solid blue, money active, needs monitoring */
 .s-disbursed { background:#DBEAFE; color:#1E40AF; }
-
-/* MEDIUM-HIGH - solid blue, money active, needs monitoring */
 .s-approved { background:#2563EB; color:white; }
-
-/* HIGH SUCCESS - deepest green, strongest positive */
 .s-fully_paid { background:#047857; color:white; }
-
-/* MEDIUM NEGATIVE - soft rose, closed failure */
 .s-rejected { background:#FEE2E2; color:#B91C1C; }
-
-/* CRITICAL HIGH - darkest red, highest risk */
 .s-defaulted { background:#7F1D1D; color:white; }  
 
 @media (max-width:768px){
@@ -148,15 +156,12 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
   color:var(--blue);
   font-weight:600;
 }
-    
     {% block extra-css %}{% endblock extra-css %}
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<!-- HEADER -->
-<div style="background:#1e4a8a;color:white;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50">
+<div style="background:#1e4a8a;color:white;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;width:100%;max-width:100vw;box-sizing:border-box">
   <div style="display:flex;align-items:center;gap:8px;font-weight:800">
     <div style="width:28px;height:28px;background:white;border-radius:6px;display:grid;place-items:center">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e4a8a" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -170,12 +175,10 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
       <div style="font-size:11px;opacity:.8">({{ request.user.get_role_display|default:request.user.role|default:"Staff" }})</div>
     </div>
 
-    <!-- AVATAR -->
     <div id="profileBtn" onclick="toggleProfile()" style="width:32px;height:32px;background:white;color:#1e4a8a;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;cursor:pointer">
       SA
     </div>
 
-    <!-- NEW BELL BUTTON - looks like your SVG div, but works -->
 <div id="bellBtn" onclick="toggleBell()" style="position:relative; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.1);">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
     <path d="M18 8A6 6 0 0 0 6 8c0 7-6 9-6 9h18s-6-2-6-9"/>
@@ -186,15 +189,10 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
   {% endif %}
 </div>
 
-<!-- NOTIFICATION DROPDOWN - LIKE SCREENSHOT -->
 <div id="notifDrop" style="display:none; position:absolute; top:42px; right:0; width:230px; background:white; border-radius:16px; box-shadow:0 12px 30px rgba(0,0,0,.20); border:1px solid #e5e7eb; overflow:hidden; z-index:100;">
-
-  <!-- Header Mark all read -->
   <div style="padding:10px 16px; display:flex; justify-content:flex-end;">
     <a href="{% url 'notifications:mark_all_read' %}" style="color:#5b21b6; font-weight:700; font-size:14px; text-decoration:underline;">Mark all read</a>
   </div>
-
-  <!-- List -->
   <div style="max-height:300px; overflow-y:auto;">
     {% for n in recent_notifications %}
     <a href="{{ n.link|default:'#' }}" style="display:block; padding:12px 16px; text-decoration:none; border-bottom:1px solid #f9fafb;">
@@ -205,35 +203,25 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
     <div style="padding:20px; text-align:center; font-size:13px; color:#9ca3af;">No new notifications</div>
     {% endfor %}
   </div>
-
-  <!-- Footer View all -->
   <div style="padding:10px; text-align:center; border-top:1px solid #f3f4f6;">
     <a href="{% url 'notifications:list' %}" style="color:#1e4a8a; font-size:14px; text-decoration:none; font-weight:500;">View all</a>
   </div>
 </div>
-
       
-      
-      
-    <!-- DROPDOWN -->
     <div id="profileDrop" style="display:none;position:absolute;top:42px;right:0;width:230px;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid #e5e7eb;overflow:hidden;z-index:99">
       <div style="padding:12px 14px;border-bottom:1px solid #f3f4f6;background:#f9fafb">
         <div style="font-size:13px;font-weight:800;color:#111">{{ request.user.first_name|default:request.user.username }}</div>
         <div style="font-size:11px;color:#6b7280">{{ request.user.email }}</div>
       </div>
-
       <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 9 15a1.65 1.65 0 0 0-1-1.51V13a2 2 0 0 1 4 0v.49c.38.23.66.57 1 1.51z"/></svg>
         Settings
       </a>
-
       <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         My Profile
       </a>
-
       <div style="height:1px;background:#f3f4f6"></div>
-      
       <div style="padding:12px 14px">
         <div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#9ca3af">DEVELOPED BY</div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
@@ -246,13 +234,11 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
           </div>
         </div>
       </div>
-
       <div style="height:1px;background:#f3f4f6"></div>
       <a href="{% url 'users:logout' %}" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px;color:#dc2626;text-decoration:none;font-weight:700">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
   Logout
 </a>
-
     </div>
   </div>
 </div>
@@ -261,14 +247,12 @@ td{padding:11px 14px;border-top:1px solid var(--border);white-space:nowrap}
 function toggleProfile(){
   let d=document.getElementById('profileDrop');
   d.style.display = d.style.display==='none' ? 'block' : 'none';
-  // close bell if open
   let b=document.getElementById('notifDrop');
   if(b) b.style.display='none';
 }
 function toggleBell(){
   let d=document.getElementById('notifDrop');
   d.style.display = d.style.display==='none' ? 'block' : 'none';
-  // close profile if open
   let p=document.getElementById('profileDrop');
   if(p) p.style.display='none';
 }
@@ -277,7 +261,6 @@ document.addEventListener('click', function(e){
   let pd=document.getElementById('profileDrop');
   let bb=document.getElementById('bellBtn');
   let nd=document.getElementById('notifDrop');
-  
   if(pb && pd && !pb.contains(e.target) && !pd.contains(e.target)){
     pd.style.display='none';
   }
@@ -288,7 +271,6 @@ document.addEventListener('click', function(e){
 </script>
 
 <div class="layout">
-  <!-- SIDEBAR DESKTOP -->
   <div class="sidebar">
     <div class="side-link active">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -313,28 +295,18 @@ document.addEventListener('click', function(e){
     </div>
   </div>
 
-  <!-- MAIN -->
   <div class="main">
-    {% block content %}
-
-    
-    {% endblock content %}
-    
-
-<!-- BOTTOM NAV MOBILE -->
+    {% block content %}{% endblock content %}
 <div class="bottom-nav">
   <a href="{% url 'dashboard:home' %}" class="b-item {% if request.resolver_match.url_name == 'dashboard' or request.path == '/' %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard
   </a>
-
   <a href="{% url 'clients:list' %}" class="b-item {% if 'clients' in request.path %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h4"/><path d="M18 9v4"/></svg>My Clients
   </a>
-
   <a href="{% url 'loans:repayments_page' %}" class="b-item {% if 'loans/repayments' in request.path %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Repayments
   </a>
-
   <a href="#" class="b-item" style="opacity:0.5" onclick="alert('Reports coming soon');return false;">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports
   </a>

@@ -166,7 +166,8 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
-
+# Compat fix for django-cloudinary-storage bug
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 MEDIA_URL = '/media/'
 
 LOGIN_URL = '/users/login/'

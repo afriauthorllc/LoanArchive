@@ -11,6 +11,7 @@ urlpatterns = [
     path('detail/<int:pk>/', views.loan_detail, name='loan_detail'),
     path('<int:loan_id>/repay/', views.create_repayment, name='repay'),
     
+       
     path('repayments/', views.repayments_view, name='repayments'),
     path('repayments-page/', views.repayment_page, name='repayments_page'),
     path('repayments-live/', views.repayment_live_filter, name='repayment_live_filter'),

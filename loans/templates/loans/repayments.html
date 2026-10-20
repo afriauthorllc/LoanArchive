@@ -32,7 +32,6 @@
   .badge-disbursed{background:#DBEAFE;color:#1E40AF;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
   .badge-defaulted{background:#7F1D1D;color:white;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}
   .balance-text{font-size:11px;color:#6b7280}
-  /* Toast */
   #toast-container{position:fixed;top:16px;right:16px;z-index:9999;width:90%;max-width:360px;display:flex;flex-direction:column;gap:8px;pointer-events:none}
   .toast{pointer-events:auto;background:#111827;color:white;padding:12px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.2);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;animation:slideIn .25s ease-out}
   .toast.success{background:#16a34a} .toast.error{background:#dc2626}
@@ -206,23 +205,21 @@ async function submitPayments(){
     const res=await fetch(BULK_URL, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':CSRF,'X-Requested-With':'XMLHttpRequest'}, body:JSON.stringify({repayments:payload})});
     const data=await res.json();
     if(data.success){
-      // SUCCESS STATE - replaces modal content (Layer 1)
-      const listHtml = (data.breakdown||[]).map(b=>`<div class="flex justify-between text-[13px] py-1.5 border-b border-gray-100"><span>${b.client} • Book #${b.book_number}</span><span class="font-bold">UGX ${parseInt(b.amount).toLocaleString()}</span></div>`).join('');
+      const listHtml = (data.breakdown||[]).map(b=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid #f3f4f6"><span>${b.client} • Book #${b.book_number}</span><span style="font-weight:700">UGX ${parseInt(b.amount).toLocaleString()}</span></div>`).join('');
       document.getElementById('modalHeader').style.display='none';
       document.getElementById('modalActions').style.display='none';
       document.getElementById('modalContent').innerHTML = `
-        <div class="text-center py-2">
+        <div style="text-align:center;padding:8px 0">
           <div style="font-size:48px">✅</div>
           <h3 style="font-weight:800;font-size:18px;margin-top:8px">${data.saved} Payments Recorded</h3>
           <p style="color:#6b7280;font-size:13px;margin-top:4px">UGX ${data.total_formatted} total saved</p>
           <div style="text-align:left;margin-top:16px;background:#f9fafb;border-radius:10px;padding:12px;max-height:160px;overflow:auto">${listHtml||''}</div>
           <div style="display:flex;gap:10px;margin-top:20px">
             <button onclick="handleSuccessClose()" class="btn-clear" style="flex:1">Add More</button>
-            <a href="{% url 'dashboard:index' %}" class="btn-confirm" style="flex:1;text-decoration:none">View Receipts</a>
+            <a href="/" style="flex:1;background:#1e4a8a;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;text-decoration:none">View Receipts</a>
           </div>
         </div>`;
 
-      // Toast on main page (Layer 2)
       showToast(data.message, 'success');
     } else {
       showToast('Error: ' + (data.error || data.errors?.join(', ') || 'Failed'), 'error');
@@ -236,7 +233,6 @@ async function submitPayments(){
 
 function handleSuccessClose(){
   closeModal();
-  // Clear inputs + mark saved rows
   document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
     const b=tr.querySelector('.book-field'); const a=tr.querySelector('.amount-field');
     if(b?.value.trim() && a?.value.trim()){
@@ -255,7 +251,6 @@ function clearAll(){
 }
 updateCount();
 
-// Django messages -> toast fallback
 {% if messages %}
   {% for message in messages %}
     showToast("{{ message|escapejs }}", "{{ message.tags|default:'success' }}");

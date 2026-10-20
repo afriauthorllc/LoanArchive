@@ -147,8 +147,6 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files -> Cloudinary (permanent)
 CLOUDINARY_STORAGE = {
@@ -162,13 +160,14 @@ STORAGES = {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",  # <- no compression
     },
 }
 # Compat fix for django-cloudinary-storage bug
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-WHITENOISE_MANIFEST_STRICT = False
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
+WHITENOISE_MANIFEST_STRICT = False
 
 LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'

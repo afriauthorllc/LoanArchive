@@ -283,7 +283,7 @@ document.addEventListener('click', function(e){
       My Clients
     </a>
 
-    <a href="{% url 'loans:list' %}" class="side-link {% if 'loans' in request.path and 'repayments' not in request.path %}active{% endif %}" style="text-decoration:none">
+    <a href="{% url 'loans:list' %}" class="side-link {% if 'loans' in request.path and 'repayments' not in request.path and 'reports' not in request.path %}active{% endif %}" style="text-decoration:none">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       Loan Applications
     </a>
@@ -293,7 +293,7 @@ document.addEventListener('click', function(e){
       Repayments
     </a>
 
-    <a href="{% url 'loans:reports_page' %}" class="side-link" style="text-decoration:none;>
+    <a href="{% url 'loans:reports_page' %}" class="side-link {% if 'reports' in request.path %}active{% endif %}" style="text-decoration:none">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Reports
     </a>
@@ -311,7 +311,7 @@ document.addEventListener('click', function(e){
   <a href="{% url 'loans:repayments_page' %}" class="b-item {% if 'loans/repayments' in request.path %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Repayments
   </a>
-  <a href="{% url 'loans:reports_page' %}" class="b-item";return false;">
+  <a href="{% url 'loans:reports_page' %}" class="b-item {% if 'loans/reports' in request.path %}active{% endif %}">
     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Reports
   </a>
 </div></div>

@@ -9,6 +9,11 @@ from loans.models import Loan
 from .models import Client
 from .forms import ClientEntryForm
 from users.models import Branch
+from decimal import Decimal, InvalidOperation
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+
 
 def get_user_branch(user):
     if hasattr(user, 'profile') and hasattr(user.profile, 'branch') and user.profile.branch:
@@ -89,24 +94,61 @@ def client_detail(request, pk):
 @login_required
 def add_loan_for_client(request, client_id):
     client = get_object_or_404(Client, pk=client_id)
+    
     if request.method == 'POST':
         try:
-            Loan.objects.create(
-                client=client,
-                branch=client.branch,
-                principal_amount=Decimal(request.POST.get('principal_amount')),
-                interest_rate=Decimal(request.POST.get('interest_rate')),
-                duration_months=int(request.POST.get('duration_months') or 6),
-                collateral_details=request.POST.get('collateral_details'),
-                status=Loan.Status.PENDING,
-                created_by_officer=request.user
-            )
+            with transaction.atomic():
+                principal = Decimal(request.POST.get('principal_amount') or 0)
+                interest = Decimal(request.POST.get('interest_rate') or 0)
+                duration = int(request.POST.get('duration_months') or 6)
+                collateral = request.POST.get('collateral_details', '').strip()
+
+                # Guarantor - exact names from your form
+                g_name = request.POST.get('guarantor_name', '').strip()
+                g_nin = request.POST.get('guarantor_nin', '').strip().upper()
+                g_tel = request.POST.get('guarantor_telephone', '').strip()
+                g_rel = request.POST.get('guarantor_relationship', '').strip()
+
+                # Basic validation
+                if not g_name or not g_nin or not g_tel or not g_rel:
+                    messages.error(request, "All guarantor fields are required.")
+                    return redirect('clients:detail', pk=client_id)
+
+                loan = Loan.objects.create(
+                    client=client,
+                    branch=client.branch,
+                    principal_amount=principal,
+                    interest_rate=interest,
+                    duration_months=duration,
+                    collateral_details=collateral,
+                    # Guarantor fields on Loan
+                    guarantor_name=g_name,
+                    guarantor_nin=g_nin,
+                    guarantor_telephone=g_tel,
+                    guarantor_relationship=g_rel,
+                    status=Loan.Status.PENDING,
+                    created_by_officer=request.user
+                )
+
+                # If you have separate Guarantor model instead, replace above 4 guarantor fields with:
+                # Guarantor.objects.create(
+                #     loan=loan,
+                #     full_name=g_name,
+                #     nin=g_nin,
+                #     telephone=g_tel,
+                #     relationship=g_rel
+                # )
+
+                messages.success(request, f"Loan created for {client.full_name} with guarantor {g_name}")
+
+        except (InvalidOperation, ValueError) as e:
+            messages.error(request, f"Invalid number: {e}")
         except Exception as e:
+            messages.error(request, f"Failed to create loan: {e}")
             print("Loan create error:", e)
-    return redirect('clients:detail', pk=client_id)
 
-from django.db.models import Q
-
+    return redirect('dashboard:home')
+    
 @login_required
 def client_search_api(request):
     q = request.GET.get('q','').strip()

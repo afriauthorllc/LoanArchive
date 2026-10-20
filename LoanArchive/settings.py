@@ -163,6 +163,8 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",  # <- no compression
     },
 }
+
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 # Compat fix for django-cloudinary-storage bug
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

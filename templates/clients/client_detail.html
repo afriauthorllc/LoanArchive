@@ -38,7 +38,7 @@
   <div class="back" onclick="history.back()">←</div>
   <div class="head">
     {% if client.passport_photo %}<img src="{{ client.passport_photo.url }}" class="ava">
-    {% else %}<div class="ava-ph">{{ client.full_name|slice:":1"|upper }}</div>{% endif %}
+    {% else %}<div class="ava-ph">{{ client.first_name|first }}{{ client.last_name|first }}</div>{% endif %}
     <div>
       <div style="font-weight:800;font-size:18px">{{ client.full_name }}</div>
       <div style="font-size:12px;color:#6b7280">{{ client.client_code|default:client.nin }} • {{ client.telephone_number }}</div>
@@ -52,7 +52,8 @@
 <div class="grid2">
   <div class="card">
     <h4>Personal Information</h4>
-    <div class="row"><span>Name</span><b>{{ client.full_name }}</b></div>
+    <div class="row"><span>First Name</span><b>{{ client.first_name }}</b></div>
+    <div class="row"><span>Last Name</span><b>{{ client.last_name }}</b></div>
     <div class="row"><span>Phone</span><span>{{ client.telephone_number }}</span></div>
     <div class="row"><span>Alt Phone</span><span>{{ client.alternative_number|default:"-" }}</span></div>
     <div class="row"><span>NIN</span><span>{{ client.nin }}</span></div>

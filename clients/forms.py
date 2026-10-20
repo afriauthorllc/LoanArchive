@@ -6,14 +6,15 @@ class ClientEntryForm(forms.ModelForm):
     class Meta:
         model = Client
         fields = [
-            'passport_photo', 'full_name', 'nin', 
+            'passport_photo', 'first_name', 'last_name', 'nin', 
             'telephone_number', 'district', 'sub_county', 'parish', 'village', 'landmark'
         ]
         widgets = {
             'passport_photo': forms.ClearableFileInput(attrs={'class': 'form-input-file'}),
-            'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter full name e.g. John Doe'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter first name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter last name'}),
             'nin': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., CM950... (14 characters)'}),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '0770000000 or +256770000000'}),
+            'telephone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., +256770000000'}),
             'district': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'District'}),
             'sub_county': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Sub-county'}),
             'parish': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Parish'}),
@@ -22,21 +23,8 @@ class ClientEntryForm(forms.ModelForm):
         }
 
     def clean_nin(self):
+        """Standardizes input formatting automatically before checking database entries."""
         nin = self.cleaned_data.get('nin')
         if nin:
             return nin.strip().upper()
         return nin
-
-    def clean_full_name(self):
-        name = self.cleaned_data.get('full_name')
-        if name:
-            # Remove extra spaces and Title Case
-            return ' '.join(name.strip().split()).title()
-        return name
-
-    def clean_telephone_number(self):
-        # Let the model handle normalization, just strip spaces here
-        phone = self.cleaned_data.get('telephone_number')
-        if phone:
-            return phone.strip()
-        return phone

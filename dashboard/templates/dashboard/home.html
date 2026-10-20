@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block content %}
 <style>
-/* --- LAYOUT FIX - stops blue header from being pushed --- */
+/* --- LAYOUT FIX --- */
 .kpi-grid{
   display:grid;
   grid-template-columns:repeat(4,1fr);
@@ -28,7 +28,7 @@
   margin-bottom:14px;
   max-width:100% !important;
   width:100%;
-  overflow:hidden !important; /* clips table */
+  overflow:hidden !important;
   box-sizing:border-box;
 }
 .card-head{
@@ -49,7 +49,7 @@
 }
 .table-wrap table{
   width:100%;
-  min-width:720px; /* scroll inside, not push page */
+  min-width:720px;
   border-collapse:collapse;
 }
 .table-wrap th{
@@ -73,13 +73,35 @@
 .m-card .left{font-size:11px;color:#6b7280;line-height:20px}
 .m-card .right{font-size:12px;text-align:right;line-height:20px;font-weight:600}
 
-/* responsive switch */
 .desktop-only{display:block}
 .mobile-cards{display:none}
+
+/* --- FAB FIX - ORIGINAL POSITION --- */
+.fab{
+  position:fixed;
+  right:20px;
+  bottom:20px; /* desktop position */
+  background:var(--blue);
+  color:white;
+  border:none;
+  border-radius:24px;
+  padding:12px 18px;
+  font-weight:700;
+  cursor:pointer;
+  z-index:900;
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+}
+
 @media(max-width:768px){
   .kpi-grid{grid-template-columns:1fr 1fr}
   .desktop-only{display:none !important}
   .mobile-cards{display:block !important}
+  /* FAB goes back above bottom nav on mobile */
+  .fab{
+    bottom:88px !important;
+    right:16px !important;
+    z-index:25 !important;
+  }
 }
 
 /* modal */
@@ -98,7 +120,6 @@
 .btn-blue{background:var(--blue);color:white}
 .btn-outline{background:white;border:1px solid var(--border)}
 .section-title{font-size:12px;font-weight:800;color:var(--blue);text-transform:uppercase;margin:18px 0 10px 0;padding-top:14px;border-top:1px dashed #d1d5db}
-.fab{position:fixed;bottom:20px;right:20px;background:var(--blue);color:white;border:none;border-radius:24px;padding:12px 18px;font-weight:700;cursor:pointer;z-index:900;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
 </style>
 
 <div class="kpi-grid">

@@ -180,25 +180,23 @@ class Repayment(models.Model):
         MOBILE_MONEY = 'MOBILE_MONEY', _('Mobile Money (MTN/Airtel)')
         BANK_TRANSFER = 'BANK_TRANSFER', _('Bank Transfer')
 
-    # 🔑 PRIMARY KEY IS THE BOOK NUMBER
-    # This is the number written against the payment in the book: 1, 2, 3...
     id = models.AutoField(primary_key=True)
     branch = models.ForeignKey('users.Branch', on_delete=models.PROTECT, related_name='repayments')
+    
     book_number = models.PositiveIntegerField(
-    null=False, blank=False,
-    help_text=_("The entry number from the physical collection book (e.g. 1, 2, 45"),
-    verbose_name="Book No / Receipt No"
+        null=False,
+        blank=False,
+        help_text=_("The entry number from the physical collection book (e.g. 1, 2, 45)"),
+        verbose_name="Book No / Receipt No"
     )
     book_date = models.DateField(default=timezone.localdate)
 
-    # 🔗 Account Relationships
     loan = models.ForeignKey(
         'loans.Loan', 
         on_delete=models.PROTECT, 
         related_name='repayments'
     )
     
-    # 💰 Transaction Particulars
     amount_paid = models.DecimalField(
         max_digits=12, 
         decimal_places=2,
@@ -216,7 +214,6 @@ class Repayment(models.Model):
         help_text=_("Enter Mobile Money Transaction ID or Bank Slip number if applicable.")
     )
     
-    # 👥 Audit Trails
     collected_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -225,11 +222,19 @@ class Repayment(models.Model):
         help_text=_("The staff member who processed the payment.")
     )
     
-    # ⏳ Timestamps
     collected_at = models.DateTimeField(
         default=timezone.now,
         help_text=_("The exact date and time the payment was made.")
     )
+
+    def save(self, *args, **kwargs):
+        if not self.branch_id and self.loan_id:
+            self.branch = self.loan.branch
+        if not self.book_date:
+            self.book_date = timezone.localdate()
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -239,9 +244,10 @@ class Repayment(models.Model):
         ]
         ordering = ['-collected_at']
         verbose_name = "Repayment Record"
+
     def __str__(self):
         return f"Book #{self.book_number} - UGX {self.amount_paid:,.0f} for {self.loan}"
-
+            
     def clean(self):
         super().clean()
         if self.loan.status not in ['DISBURSED', 'DEFAULTED']:

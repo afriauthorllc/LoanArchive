@@ -230,16 +230,15 @@ class Repayment(models.Model):
         default=timezone.now,
         help_text=_("The exact date and time the payment was made.")
     )
-
     class Meta:
-    constraints = [
-        models.UniqueConstraint(
-            fields=['branch', 'book_date', 'book_number'],
-            name='uniq_book_per_branch_per_day'
-        )
-    ]
-    ordering = ['-collected_at']
-    verbose_name = "Repayment Record"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['branch', 'book_date', 'book_number'],
+                name='uniq_book_per_branch_per_day'
+            )
+        ]
+        ordering = ['-collected_at']
+        verbose_name = "Repayment Record"
     def __str__(self):
         return f"Book #{self.book_number} - UGX {self.amount_paid:,.0f} for {self.loan}"
 

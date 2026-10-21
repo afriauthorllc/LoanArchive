@@ -186,7 +186,7 @@ class Repayment(models.Model):
     branch = models.ForeignKey('users.Branch', on_delete=models.PROTECT, related_name='repayments')
     book_number = models.PositiveIntegerField(
     null=False, blank=False,
-    help_text==_("The entry number from the physical collection book (e.g. 1, 2, 45"),
+    help_text=_("The entry number from the physical collection book (e.g. 1, 2, 45"),
     verbose_name="Book No / Receipt No"
     )
     book_date = models.DateField(default=timezone.localdate)

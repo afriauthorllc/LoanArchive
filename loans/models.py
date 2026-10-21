@@ -182,12 +182,14 @@ class Repayment(models.Model):
 
     # 🔑 PRIMARY KEY IS THE BOOK NUMBER
     # This is the number written against the payment in the book: 1, 2, 3...
-    book_number = models.CharField(
-        primary_key=True,
-        max_length=50,
-        help_text=_("The entry number from the physical collection book (e.g. 1, 2, 45 or CB-2026-001)"),
-        verbose_name="Book No / Receipt No"
+    id = models.AutoField(primary_key=True)
+    branch = models.ForeignKey('users.Branch', on_delete=models.PROTECT, related_name='repayments')
+    book_number = models.PositiveIntegerField(
+    null=False, blank=False,
+    help_text==_("The entry number from the physical collection book (e.g. 1, 2, 45"),
+    verbose_name="Book No / Receipt No"
     )
+    book_date = models.DateField(default=timezone.localdate)
 
     # 🔗 Account Relationships
     loan = models.ForeignKey(
@@ -230,10 +232,14 @@ class Repayment(models.Model):
     )
 
     class Meta:
-        ordering = ['-collected_at']
-        verbose_name = "Repayment Record"
-        verbose_name_plural = "Repayment Records"
-
+    constraints = [
+        models.UniqueConstraint(
+            fields=['branch', 'book_date', 'book_number'],
+            name='uniq_book_per_branch_per_day'
+        )
+    ]
+    ordering = ['-collected_at']
+    verbose_name = "Repayment Record"
     def __str__(self):
         return f"Book #{self.book_number} - UGX {self.amount_paid:,.0f} for {self.loan}"
 
@@ -245,8 +251,13 @@ class Repayment(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
+    if not self.branch_id and self.loan_id:
+        self.branch = self.loan.branch
+    if not self.book_date:
+        self.book_date = timezone.localdate()
+    
+    self.full_clean()
+    super().save(*args, **kwargs)
         
         parent_loan = self.loan
         total_loan_liability = parent_loan.total_payable

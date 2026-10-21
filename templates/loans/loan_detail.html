@@ -117,9 +117,12 @@
 <div class="info">
   <h4>Repayment History ({{ repayments.count }})</h4>
   {% for r in repayments %}
-  <div class="row"><span>Book #{{ r.book_number }} • {{ r.collected_at|date:"d M Y H:i" }} • {{ r.get_payment_mode_display }}</span><span><b>UGX {{ r.amount_paid|intcomma }}</b> <span style="font-size:11px;color:#6b7280">by {{ r.collected_by|default:"-" }}</span></span></div>
+  <div class="row">
+    <span>Book #{{ r.book_number }} • {{ r.book_date|date:"d M Y" }} • {{ r.branch.name }} • {{ r.collected_at|date:"H:i" }} • {{ r.get_payment_mode_display }}</span>
+    <span><b>UGX {{ r.amount_paid|intcomma }}</b> <span style="font-size:11px;color:#6b7280">by {{ r.collected_by|default:"-" }}</span></span>
+  </div>
   {% empty %}
-  <div style="text-align:center;padding:20px;color:#6b7280;font-size:13px">No repayments yet. Loan must be DISBURSED to collect.</div>
+  <div style="text-align:center;padding:20px;color:#6b7280;font-size:13px">No repayments yet.</div>
   {% endfor %}
 </div>
 
@@ -162,15 +165,22 @@ function closeModal(){document.getElementById('repayModal').style.display='none'
 const bookField = document.getElementById('bookField');
 const bookError = document.getElementById('bookError');
 const submitBtn = document.getElementById('submitBtn');
+const amountField = document.getElementById('amountField');
 
 bookField.addEventListener('blur', async function(){
   const val = this.value.trim();
-  if(!val) return;
+  if(!val || !/^\d+$/.test(val)) return;
+  
+  // NEW: send branch_id + book_date for per-branch-per-day check
+  const branchId = "{{ loan.branch.id }}";
+  const bookDate = new Date().toISOString().split('T')[0]; // today, or use your form date
+  
   try{
-    const res = await fetch(`{% url 'loans:check_book_number' %}?book_number=${encodeURIComponent(val)}`).then(r=>r.json());
+    const url = `{% url 'loans:check_book_number' %}?book_number=${encodeURIComponent(val)}&branch_id=${branchId}&book_date=${bookDate}`;
+    const res = await fetch(url).then(r=>r.json());
     if(res.exists){
       this.classList.add('is-invalid'); this.classList.remove('is-valid');
-      bookError.textContent = 'Book #' + val + ' already used!';
+      bookError.textContent = `Book #${val} already used in {{ loan.branch.name }} today!`;
       bookError.style.display = 'block';
       submitBtn.disabled = true;
     } else {
@@ -178,7 +188,19 @@ bookField.addEventListener('blur', async function(){
       bookError.style.display = 'none';
       submitBtn.disabled = false;
     }
-  } catch(e){}
+  } catch(e){ console.log(e); }
+});
+
+// NEW: live max validation
+amountField.addEventListener('input', function(){
+  const bal = parseFloat("{{ balance }}");
+  const entered = parseFloat(this.value) || 0;
+  if(entered > bal){
+    this.setCustomValidity(`Exceeds balance UGX ${bal.toLocaleString()}`);
+    this.reportValidity();
+  } else {
+    this.setCustomValidity('');
+  }
 });
 </script>
 {% endblock %}

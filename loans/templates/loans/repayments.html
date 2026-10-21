@@ -73,7 +73,7 @@
       </thead>
       <tbody>
         {% for loan in loans %}
-        <tr data-client="{{ loan.client.full_name }}" data-loan="LN-{{ loan.id|stringformat:'04d' }}" data-loan-id="{{ loan.id }}">
+        <tr data-client="{{ loan.client.full_name }}" data-loan="LN-{{ loan.id|stringformat:'04d' }}" data-loan-id="{{ loan.id }}" data-branch-id="{{ loan.branch.id }}" data-balance="{{ loan.outstanding_balance }}">
           <td style="font-weight:600">
             {{ loan.client.full_name }}
             <div class="balance-text">{{ loan.client.telephone_number }}</div>
@@ -140,9 +140,26 @@ function showToast(message, type='success'){
   c.appendChild(t);
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(100%)'; setTimeout(()=>t.remove(),300)}, 4000);
 }
-function getBookStatus(book){
-  return fetch(`${CHECK_BOOK_URL}?book_number=${encodeURIComponent(book)}`).then(r=>r.json());
+function getBookStatus(book, branchId){
+  const bookDate = new Date().toISOString().split('T')[0];
+  return fetch(`${CHECK_BOOK_URL}?book_number=${encodeURIComponent(book)}&branch_id=${branchId}&book_date=${bookDate}`).then(r=>r.json());
 }
+const branchId = this.closest('tr').dataset.branchId;
+const res = await getBookStatus(val, branchId);
+document.querySelectorAll('.amount-field').forEach(inp=>{
+  inp.addEventListener('input', function(){
+    const bal = parseFloat(this.closest('tr').dataset.balance);
+    const entered = parseFloat(this.value) || 0;
+    if(entered > bal){
+      this.style.borderColor = '#ef4444';
+      this.title = `Exceeds balance UGX ${bal}`;
+    } else {
+      this.style.borderColor = '#d1d5db';
+      this.title = '';
+    }
+    updateCount();
+  });
+});
 function updateCount(){
   let c=0; document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
     const b=tr.querySelector('.book-field')?.value.trim(); const a=tr.querySelector('.amount-field')?.value.trim(); if(b&&a) c++;
@@ -195,8 +212,11 @@ function closeModal(){document.getElementById('modalOverlay').classList.remove('
 async function submitPayments(){
   const payload=[]; 
   document.querySelectorAll('#repayTable tbody tr[data-loan-id]').forEach(tr=>{
-    const book=tr.querySelector('.book-field')?.value.trim(); const amount=tr.querySelector('.amount-field')?.value.trim(); const loan_id=tr.dataset.loanId;
-    if(book&&amount) payload.push({book_number:book, loan_id:loan_id, amount:amount});
+    const book=tr.querySelector('.book-field')?.value.trim(); 
+    const amount=tr.querySelector('.amount-field')?.value.trim(); 
+    const loan_id=tr.dataset.loanId;
+    const branch_id=tr.dataset.branchId;
+    if(book&&amount) payload.push({book_number:book, loan_id:loan_id, branch_id:branch_id, amount:amount, payment_mode:'CASH'});
   });
   if(payload.length===0) return;
   

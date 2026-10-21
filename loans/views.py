@@ -135,16 +135,30 @@ def loan_search_api(request):
 
 @login_required
 def check_book_number(request):
-    book_no = request.GET.get('book_number','') or request.GET.get('book','')
-    book_no = book_no.strip()
-    if not book_no:
+    raw = request.GET.get('book_number','') or request.GET.get('book','')
+    raw = raw.strip()
+    if not raw.isdigit():
         return JsonResponse({'exists': False})
-    exists = Repayment.objects.filter(book_number=book_no).exists()
+    
+    branch_id = request.GET.get('branch_id')
+    date_str = request.GET.get('book_date')  # YYYY-MM-DD from your form
+    
+    filters = {'book_number': int(raw)}
+    if branch_id:
+        filters['branch_id'] = branch_id
+    if date_str:
+        filters['book_date'] = date_str
+    else:
+        from django.utils import timezone
+        filters['book_date'] = timezone.localdate()
+
+    exists = Repayment.objects.filter(**filters).exists()
     return JsonResponse({'exists': exists})
 
+@login_required
 def check_book_number_api(request):
     return check_book_number(request)
-
+    
 import json
 from decimal import Decimal, InvalidOperation
 from django.http import JsonResponse
@@ -159,97 +173,120 @@ def bulk_repayment_submit(request):
     try:
         payload = json.loads(request.body)
         repayments = payload.get('repayments', [])
-        
+
         if not repayments:
             return JsonResponse({'success': False, 'error': 'No repayments sent'}, status=400)
 
         saved = 0
         total = Decimal('0')
         errors = []
-        breakdown = []  # for your success modal
+        breakdown = []
 
         with transaction.atomic():
             for item in repayments:
+                book_ref = str(item.get('book_number','')).strip() or 'N/A'
                 try:
                     loan_id = item.get('loan_id')
                     raw_amount = item.get('amount') or item.get('amount_paid')
-                    
                     if not loan_id or not raw_amount:
                         raise ValueError('Missing loan_id or amount')
-                    
+
                     amount = Decimal(str(raw_amount))
                     if amount <= 0:
                         raise ValueError('Amount must be > 0')
 
-                    # Fetch for breakdown display
-                    loan = None
-                    client_name = "Client"
-                    try:
-                        from loans.models import Loan
-                        loan = Loan.objects.select_related('client').get(id=loan_id)
-                        client_name = getattr(loan.client, 'full_name', str(loan.client)) if hasattr(loan, 'client') else f"Book {item.get('book_number')}"
-                    except:
-                        pass
+                    loan = Loan.objects.select_related('client','branch').get(id=loan_id)
+                    client_name = getattr(loan.client, 'full_name', str(loan.client))
 
-                    Repayment.objects.create(
-                        book_number=str(item.get('book_number','')).strip(),
-                        loan_id=loan_id,
+                    # Let model auto-assign branch/book_date/book_number
+                    r = Repayment(
+                        loan=loan,
+                        branch=loan.branch,
                         amount_paid=amount,
-                        payment_mode=item.get('payment_mode', 'CASH'),
+                        payment_mode=item.get('payment_mode','CASH'),
                         collected_by=request.user
                     )
-                    
+                    # This runs your clean() overpayment check
+                    r.full_clean()
+                    r.save()
+
                     saved += 1
                     total += amount
                     breakdown.append({
                         'client': client_name,
                         'amount': float(amount),
-                        'book_number': str(item.get('book_number','')).strip(),
+                        'book_number': r.book_number, # real assigned number
+                        'book_ref': book_ref,
                     })
 
-                except (InvalidOperation, ValueError) as e:
-                    errors.append(f"Book {item.get('book_number')}: {str(e)}")
+                except ValidationError as ve:
+                    # overpayment error from clean()
+                    msg = '; '.join([f"{k}: {', '.join(v)}" for k,v in ve.message_dict.items()]) if hasattr(ve,'message_dict') else str(ve)
+                    errors.append(f"Book {book_ref}: {msg}")
                 except Exception as e:
-                    errors.append(f"Book {item.get('book_number')}: {str(e)}")
+                    errors.append(f"Book {book_ref}: {str(e)}")
 
-        # If AJAX - this is what your toast + modal will use
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
-            return JsonResponse({
-                'success': True,
-                'saved': saved,
-                'total': float(total),
-                'total_formatted': f"{total:,.0f}",  # 38,000
-                'message': f'{saved} payments recorded • UGX {total:,.0f} total',
-                'breakdown': breakdown,  # use this to render the list in modal
-                'errors': errors
-            })
-        
-        # Fallback non-JS
-        messages.success(request, f'{saved} payments recorded • UGX {total:,.0f} total')
-        return JsonResponse({'success': True, 'saved': saved})
+            if errors and saved == 0:
+                # rollback all if nothing saved and you want strict mode
+                raise transaction.TransactionManagementError('; '.join(errors))
+
+        return JsonResponse({
+            'success': True,
+            'saved': saved,
+            'total': float(total),
+            'total_formatted': f"{total:,.0f}",
+            'message': f'{saved} payments recorded • UGX {total:,.0f} total',
+            'breakdown': breakdown,
+            'errors': errors
+        })
 
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+            
 @login_required
+@require_POST
 def create_repayment(request, loan_id):
-    loan = get_object_or_404(Loan, pk=loan_id)
-    if request.method == 'POST':
-        try:
-            Repayment.objects.create(book_number=request.POST.get('book_number','').strip() or f"TEMP-{loan_id}", loan=loan, amount_paid=Decimal(request.POST.get('amount_paid','0')), payment_mode=request.POST.get('payment_mode','CASH'), collected_by=request.user)
-            messages.success(request, 'Collected')
-        except Exception as e:
-            messages.error(request, str(e))
-    return redirect('loans:detail', pk=loan.pk)
+    loan = get_object_or_404(Loan.objects.select_related('branch','client'), pk=loan_id)
+    try:
+        amount = Decimal(request.POST.get('amount_paid','0') or '0')
+        if amount <= 0:
+            raise ValueError('Enter a valid amount')
 
+        r = Repayment(
+            loan=loan,
+            branch=loan.branch,
+            amount_paid=amount,
+            payment_mode=request.POST.get('payment_mode','CASH'),
+            collected_by=request.user
+        )
+        r.full_clean()  # checks overpayment
+        r.save()
+        messages.success(request, f'Collected UGX {amount:,.0f} — Book #{r.book_number}')
+    except ValidationError as ve:
+        msg = '; '.join([', '.join(v) for v in ve.message_dict.values()]) if hasattr(ve,'message_dict') else str(ve)
+        messages.error(request, msg)
+    except Exception as e:
+        messages.error(request, str(e))
+
+    return redirect('loans:detail', pk=loan.pk)
+    
+@login_required
 def repayment_live_filter(request):
     q = request.GET.get('q','').strip()
-    repayments = Repayment.objects.select_related('loan__client').order_by('-collected_at')[:200]
-    if q:
-        repayments = repayments.filter(Q(book_number__icontains=q) | Q(loan__client__first_name__icontains=q) | Q(loan__client__last_name__icontains=q))
-    return render(request, 'loans/live_filter.html', {'repayments': repayments, 'q': q})
+    base = Repayment.objects.select_related('loan__client','branch','collected_by').order_by('-collected_at')
 
+    if q:
+        filters = Q(loan__client__first_name__icontains=q) | Q(loan__client__last_name__icontains=q) | Q(loan__client__full_name__icontains=q)
+        if q.isdigit():
+            filters |= Q(book_number=int(q))
+        repayments = base.filter(filters)[:200]
+    else:
+        repayments = base[:200]
+
+    return render(request, 'loans/live_filter.html', {'repayments': repayments, 'q': q})
+        
 @login_required
 def repayment_page(request):
     return redirect('loans:repayments')

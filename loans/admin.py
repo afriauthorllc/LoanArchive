@@ -141,19 +141,22 @@ from .models import Repayment
 class RepaymentInline(admin.TabularInline):
     model = Repayment
     extra = 0
-    readonly_fields = ('collected_by', 'collected_at')
-    fields = ('amount_paid', 'payment_mode', 'transaction_reference', 'collected_by', 'collected_at')
+    readonly_fields = ('book_number', 'branch', 'book_date', 'collected_by', 'collected_at', 'amount_paid', 'payment_mode')
+    fields = ('book_number', 'book_date', 'branch', 'amount_paid', 'payment_mode', 'collected_by', 'collected_at')
+    can_delete = False
+    def has_add_permission(self, request, obj=None):
+        return False
 
 @admin.register(Repayment)
 class RepaymentAdmin(admin.ModelAdmin):
-    list_display = ('book_number', 'get_client_name', 'loan_link', 'amount_formatted', 'payment_mode', 'collected_by', 'collected_at')
+    list_display = ('book_number', 'book_date', 'branch', 'get_client_name', 'loan_link', 'amount_formatted', 'payment_mode', 'collected_by', 'collected_at')
     list_display_links = ('book_number',)
-    list_filter = ('payment_mode', 'collected_at', 'loan__branch')
-    search_fields = ('book_number', 'loan__id', 'loan__client__first_name', 'loan__client__last_name', 'transaction_reference')
+    list_filter = ('payment_mode', 'collected_at', 'book_date', 'branch', 'loan__branch')
+    search_fields = ('loan__id', 'loan__client__first_name', 'loan__client__last_name', 'transaction_reference')
     
-    # Simple form separation - book_number must be editable
-    fields = ('book_number', 'loan', 'amount_paid', 'payment_mode', 'transaction_reference', 'collected_by', 'collected_at')
-    readonly_fields = ('collected_by', 'collected_at')
+    # book_number / branch / book_date auto, so readonly
+    fields = ('book_number', 'book_date', 'branch', 'loan', 'amount_paid', 'payment_mode', 'transaction_reference', 'collected_by', 'collected_at')
+    readonly_fields = ('book_number', 'book_date', 'branch', 'collected_by', 'collected_at')
 
     def get_client_name(self, obj):
         return obj.loan.client.full_name
@@ -168,10 +171,17 @@ class RepaymentAdmin(admin.ModelAdmin):
     amount_formatted.short_description = _("Amount Paid")
 
     def save_model(self, request, obj, form, change):
-        # Automatically tag the Cashier/Field Officer logged into the admin dashboard
-        if not change and not obj.collected_by:
-            obj.collected_by = request.user
-        super().save_model(request, obj, form, change)
-        
+        if not change:
+            if not obj.collected_by_id:
+                obj.collected_by = request.user
+            if not obj.branch_id and obj.loan_id:
+                obj.branch = obj.loan.branch
+        try:
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            # show overpayment error in admin
+            from django.contrib import messages
+            messages.set_level(request, messages.ERROR)
+            self.message_user(request, str(e), level=messages.ERROR)
         
         

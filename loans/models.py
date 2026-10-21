@@ -256,14 +256,12 @@ class Repayment(models.Model):
             )
 
     def save(self, *args, **kwargs):
-    if not self.branch_id and self.loan_id:
-        self.branch = self.loan.branch
-    if not self.book_date:
-        self.book_date = timezone.localdate()
-    
-    self.full_clean()
-    super().save(*args, **kwargs)
-        
+        if not self.branch_id and self.loan_id:
+            self.branch = self.loan.branch
+        if not self.book_date:
+            self.book_date = timezone.localdate()
+        self.full_clean()
+        super().save(*args, **kwargs)
         parent_loan = self.loan
         total_loan_liability = parent_loan.total_payable
         total_collected = parent_loan.repayments.aggregate(

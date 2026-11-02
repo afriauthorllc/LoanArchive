@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="p-3 max-w-4xl mx-auto">
+<div class="bg-white rounded-lg shadow p-4 mb-4">
+<h2 class="text-xl font-bold mb-3">Repayments - Type to Filter (CB-...)</h2>
+<div class="flex gap-2">
+<input id="liveSearch" value="{{ q }}" 
+ placeholder="Type book no: CB-001 or client name..."
+ class="flex-1 p-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-600"
+ onkeyup="doLiveFilter()" autofocus>
+<span id="count" class="bg-gray-100 px-3 py-3 rounded text-sm">{{ repayments|length }} found</span>
+</div>
+<div id="dupWarning" class="hidden mt-2 p-2 bg-red-100 text-red-700 rounded text-sm"></div>
+</div>
+
+<table id="tbl" class="w-full bg-white rounded-lg shadow overflow-hidden">
+<thead class="bg-blue-900 text-white"><tr><th class="p-3 text-left">Book No</th><th class="p-3">Client</th><th class="p-3">Amount</th><th class="p-3">Date</th></tr></thead>
+<tbody>
+{% for r in repayments %}
+<tr class="border-b hover:bg-yellow-50">
+<td class="p-3 font-mono font-bold">{{ r.book_number }}</td>
+<td class="p-3">{{ r.loan.client.first_name }} {{ r.loan.client.last_name }}</td>
+<td class="p-3">{{ r.amount_paid }}</td>
+<td class="p-3 text-sm">{{ r.payment_date }}</td>
+</tr>
+{% empty %}
+<tr><td colspan="4" class="p-6 text-center text-gray-500">No repayments found. Type CB- to search</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<script>
+function doLiveFilter(){
+ let v=document.getElementById('liveSearch').value.toLowerCase();
+ let rows=document.querySelectorAll('#tbl tbody tr');
+ let visible=0;
+ rows.forEach(tr=>{
+   let show=tr.textContent.toLowerCase().includes(v);
+   tr.style.display=show?'':'none';
+   if(show) visible++;
+ });
+ document.getElementById('count').textContent=visible+' found';
+ // Check duplicate via API if looks like book number
+ if(v.startsWith('cb-') || v.startsWith('cb') ){
+   fetch(`/loans/check-book/?book=${encodeURIComponent(v)}`)
+   .then(r=>r.json()).then(d=>{
+     let w=document.getElementById('dupWarning');
+     if(d.exists){ w.classList.remove('hidden'); w.textContent='⚠️ Book '+v.toUpperCase()+' already exists ('+d.count+' times)!'; }
+     else{ w.classList.add('hidden'); }
+   });
+ }
+}
+doLiveFilter();
+</script>
+{% endblock %}

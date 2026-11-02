@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Edit Payment - {{ payment.book_number }}{% endblock %}
+
+{% block extra-css %}
+<style>
+.edit-wrap{ padding:0; padding-bottom:90px; max-width:500px; margin:0 auto; }
+.edit-card{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+.edit-head{ padding:14px 16px; border-bottom:1px solid #f3f4f6; display:flex; justify-content:space-between; align-items:center; }
+.edit-head h3{ font-size:14px; font-weight:800; }
+.edit-body{ padding:16px; display:flex; flex-direction:column; gap:14px; }
+.field label{ font-size:11px; font-weight:700; color:#374151; margin-bottom:4px; display:block; }
+.field input{ width:100%; border:1px solid #d1d5db; border-radius:8px; padding:10px 12px; font-size:13px; outline:none; }
+.field input:focus{ border-color:#1e4a8a; }
+.field input.is-invalid{ border-color:#ef4444; background:#fef2f2; }
+.field input.is-valid{ border-color:#16a34a; background:#f0fdf4; }
+.row-error{ font-size:11px; color:#ef4444; margin-top:4px; display:none; }
+.info-box{ background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; font-size:11px; line-height:1.5; }
+.btn-row{ display:flex; gap:10px; margin-top:4px; }
+.btn-clear{ flex:1; padding:12px; border:1px solid #e5e7eb; background:#fff; border-radius:10px; font-weight:700; cursor:pointer; }
+.btn-save{ flex:1; padding:12px; border:none; background:#1e4a8a; color:#fff; border-radius:10px; font-weight:700; cursor:pointer; }
+.btn-save:disabled{ opacity:0.5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-wrap">
+  <div class="edit-card">
+    <div class="edit-head">
+      <h3>Edit Payment #{{ payment.book_number }}</h3>
+      <a href="{% url 'loans:view_payments' %}" style="font-size:12px; color:#6b7280; text-decoration:none;">Back</a>
+    </div>
+
+    <form method="post" id="editForm">
+      {% csrf_token %}
+      <div class="edit-body">
+        
+        <div class="info-box">
+          <div style="display:flex; justify-content:space-between;"><span>Client:</span> <strong>{{ loan.client.full_name }} - {{ loan.client.telephone_number }}</strong></div>
+          <div style="display:flex; justify-content:space-between; margin-top:4px;"><span>Loan:</span> <strong>LN-{{ loan.id|stringformat:"04d" }}</strong></div>
+          <div style="display:flex; justify-content:space-between; margin-top:4px;"><span>Balance:</span> <strong>UGX {{ loan.outstanding_balance|floatformat:0 }}</strong></div>
+          <div style="display:flex; justify-content:space-between; margin-top:4px;"><span>Total Payable:</span> <span>UGX {{ loan.total_payable|floatformat:0 }}</span></div>
+        </div>
+
+        <div class="field">
+          <label>BOOK NUMBER *</label>
+          <input type="number" name="book_number" id="bookInput" value="{{ payment.book_number }}" placeholder="Book number" required>
+          <div class="row-error" id="bookError"></div>
+        </div>
+
+        <div class="field">
+          <label>AMOUNT (UGX) *</label>
+          <input type="number" name="amount" id="amountInput" value="{{ payment.amount|floatformat:0 }}" max="{{ max_allowed }}" required>
+          <div style="font-size:10px; color:#9ca3af; margin-top:4px;">Max allowed: UGX {{ max_allowed|floatformat:0 }} (Outstanding + this payment)</div>
+        </div>
+
+        <div class="btn-row">
+          <a href="{% url 'loans:view_payments' %}" class="btn-clear" style="text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center;">Cancel</a>
+          <button type="submit" class="btn-save" id="saveBtn">Save Changes</button>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra-js %}
+<script>
+const CHECK_BOOK_URL = "{% url 'loans:check_book_number' %}";
+const CURRENT_BOOK = "{{ payment.book_number }}";
+
+document.getElementById('bookInput').addEventListener('blur', async function(){
+  const val = this.value.trim();
+  if(!val || val === CURRENT_BOOK) {
+    this.classList.remove('is-invalid'); document.getElementById('bookError').style.display='none'; return;
+  }
+  try{
+    const res = await fetch(`${CHECK_BOOK_URL}?book_number=${encodeURIComponent(val)}`).then(r=>r.json());
+    if(res.exists){
+      this.classList.add('is-invalid'); this.classList.remove('is-valid');
+      document.getElementById('bookError').textContent = `Book #${val} already used!`;
+      document.getElementById('bookError').style.display='block';
+    } else {
+      this.classList.remove('is-invalid'); this.classList.add('is-valid');
+      document.getElementById('bookError').style.display='none';
+    }
+  }catch(e){}
+});
+</script>
+{% endblock %}

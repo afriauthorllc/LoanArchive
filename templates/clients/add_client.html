@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+.form-card{background:white;border-radius:12px;padding:18px;border:1px solid var(--border)}
+.input-group{margin-bottom:14px}
+.input-group label{font-size:12px;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px}
+.input{width:100%;padding:11px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none}
+.input:focus{border-color:#2563eb;box-shadow:0 0 0 2px #dbeafe}
+</style>
+
+<div class="form-card">
+<div style="background:#1e3a8a;color:white;padding:16px;border-radius:10px;margin:-18px -18px 18px -18px">
+  <h3 style="margin:0">Client KYC Registration Form</h3>
+  <p style="margin:4px 0 0;font-size:12px;opacity:0.8">Fill out details matching official government documentation.</p>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+{% csrf_token %}
+
+<div class="input-group">
+  <label>Passport Photo Upload</label>
+  <input type="file" name="passport_photo" class="input" accept="image/*">
+</div>
+
+{% if can_choose_branch %}
+<div class="input-group">
+  <label>Branch *</label>
+  <select name="branch" class="input" required>
+    <option value="">-- Select Branch --</option>
+    {% for b in branches %}
+      <option value="{{ b.id }}">{{ b.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% else %}
+  {% if user_branch %}
+  <div class="input-group">
+    <label>Branch (Auto-assigned)</label>
+    <input type="text" class="input" value="{{ user_branch.name }}" disabled style="background:#f3f4f6">
+  </div>
+  {% endif %}
+{% endif %}
+
+<div class="input-group"><label>Full Name *</label><input type="text" name="full_name" class="input" required placeholder="e.g. Peter Okello"></div>
+<div class="input-group"><label>National ID Number (NIN) *</label><input type="text" name="nin" class="input" required placeholder="CM000000..."></div>
+<div class="input-group"><label>Telephone Contact *</label><input type="tel" name="telephone_number" class="input" required placeholder="07..."></div>
+
+<h4 style="color:#1e3a8a;font-size:12px;margin:20px 0 12px;border-bottom:1px dashed #d1d5db;padding-bottom:6px">PHYSICAL ADDRESS LOCATION MAPPING</h4>
+
+<div class="input-group"><label>District</label><input type="text" name="district" class="input" placeholder="e.g. Gulu"></div>
+<div class="input-group"><label>Sub-County</label><input type="text" name="sub_county" class="input"></div>
+<div class="input-group"><label>Parish</label><input type="text" name="parish" class="input"></div>
+<div class="input-group"><label>Village</label><input type="text" name="village" class="input"></div>
+<div class="input-group"><label>Physical Landmark / Directions</label><textarea name="landmark" class="input" rows="2" placeholder="Near..."></textarea></div>
+
+<button type="submit" style="width:100%;padding:12px;background:#2563eb;color:white;border:none;border-radius:8px;font-weight:700;margin-top:10px">Save Client</button>
+</form>
+</div>
+{% endblock %}

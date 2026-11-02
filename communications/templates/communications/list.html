@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto;padding:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="font-weight:800;font-size:18px">Notifications {% if request.GET.filter %}({{ request.GET.filter }}){% endif %}</h2>
+    <div style="display:flex;gap:8px">
+      <a href="{% url 'communications:mark_all_read' %}" style="background:#1e4a8a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">Mark all read</a>
+      <a href="{% url 'communications:delete_read' %}" style="background:white;border:1px solid #e5e7eb;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:13px">Clear read</a>
+    </div>
+  </div>
+
+  {% for n in notifications %}
+  <a href="{% url 'communications:mark_read' n.id %}" style="display:block;background:{% if not n.is_read %}#f5f3ff{% else %}white{% endif %};border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-bottom:10px;text-decoration:none">
+    <div style="display:flex;gap:10px">
+      {% if not n.is_read %}
+      <div style="width:8px;height:8px;background:#5b21b6;border-radius:50%;margin-top:8px"></div>
+      {% else %}
+      <div style="width:8px"></div>
+      {% endif %}
+      <div style="flex:1">
+        <div style="font-weight:800;font-size:14px;color:#111">{{ n.title }}</div>
+        <div style="font-size:13px;color:#4b5563;margin-top:4px">{{ n.message }}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:6px">
+          {{ n.created_at|timesince }} ago 
+          {% if n.loan %}• Loan #{{ n.loan.id }} - {{ n.loan.client }}{% endif %}
+          {% if n.is_read %}• Read{% else %}• <b style="color:#5b21b6">Unread</b>{% endif %}
+        </div>
+      </div>
+    </div>
+  </a>
+  {% empty %}
+  <div style="text-align:center;padding:40px;background:white;border-radius:12px;border:1px dashed #e5e7eb">
+    <div style="font-size:32px">🔔</div>
+    <div style="margin-top:8px;color:#6b7280">No notifications {% if request.GET.filter %}for {{ request.GET.filter }}{% endif %}</div>
+  </div>
+  {% endfor %}
+
+  <div style="margin-top:20px;text-align:center">
+    <a href="/" style="color:#6b7280;font-size:13px;text-decoration:none">← Back to Dashboard</a>
+  </div>
+</div>
+{% endblock %}

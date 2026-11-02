@@ -1,0 +1,135 @@
+<div style="background:#1e4a8a;color:white;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50;width:100%;max-width:100vw;box-sizing:border-box">
+  <div style="display:flex;align-items:center;gap:8px;font-weight:800">
+    <div style="width:28px;height:28px;background:white;border-radius:6px;display:grid;place-items:center">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e4a8a" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    LoanArchive
+  </div>
+
+  <div style="display:flex;align-items:center;gap:10px;position:relative">
+    <div style="text-align:right;line-height:1.1">
+      <div style="font-size:12px">Welcome back {{ request.user.first_name|default:request.user.username }}!</div>
+      <div style="font-size:11px;opacity:.8">({{ request.user.get_role_display|default:request.user.role|default:"Staff" }})</div>
+    </div>
+
+    <div id="profileBtn" onclick="toggleProfile()" style="width:32px;height:32px;background:white;color:#1e4a8a;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;cursor:pointer">
+      {{ request.user.first_name|slice:":2"|upper|default:"SA" }}
+    </div>
+
+    <div id="bellBtn" onclick="toggleBell()" style="position:relative; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.15);">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-6 9-6 9h18s-6-2-6-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      {% if unread_count > 0 %}
+      <span style="position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;font-size:10px;padding:2px 6px;border-radius:10px;line-height:1.2;font-weight:700; border:2px solid #1e4a8a; min-width:18px; text-align:center;">{{ unread_count }}</span>
+      {% endif %}
+    </div>
+
+    <div id="notifDrop" style="display:none; position:absolute; top:42px; right:0; width:340px; background:white; border-radius:16px; box-shadow:0 12px 30px rgba(0,0,0,.20); border:1px solid #e5e7eb; overflow:hidden; z-index:100;">
+      <!-- Header -->
+      <div style="padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #f3f4f6;">
+        <span style="font-weight:800; font-size:14px; color:#111827;">Today ({{ unread_today_count|default:unread_count|default:0 }})</span>
+        <a href="{% url 'communications:mark_all_read' %}" style="color:#5b21b6; font-weight:700; font-size:13px; text-decoration:none;">Mark all read</a>
+      </div>
+
+      <!-- List - 5 max -->
+      <div style="max-height:360px; overflow-y:auto;">
+        {% for n in notifications_preview %}
+        <a href="{% url 'communications:mark_read' n.id %}" style="display:flex; gap:10px; padding:12px 16px; text-decoration:none; border-bottom:1px solid #f9fafb; background: {% if not n.is_read %}#f5f3ff{% else %}white{% endif %};">
+          {% if not n.is_read %}
+          <div style="width:8px; height:8px; background:#5b21b6; border-radius:50%; margin-top:6px; flex-shrink:0;"></div>
+          {% else %}
+          <div style="width:8px; flex-shrink:0;"></div>
+          {% endif %}
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:800; font-size:13px; color:#111827; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ n.title }}</div>
+            <div style="font-size:12px; color:#6b7280; margin-top:3px; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ n.message }}</div>
+            <div style="font-size:11px; color:#9ca3af; margin-top:4px;">{{ n.created_at|timesince }} ago • Loan #{{ n.loan.id|default:"" }}</div>
+          </div>
+        </a>
+        {% empty %}
+        <div style="padding:30px 20px; text-align:center;">
+          <div style="font-size:24px; margin-bottom:6px;">🔔</div>
+          <div style="font-size:13px; color:#9ca3af; font-weight:500;">No new notifications today</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:8px; display:flex; gap:8px; border-top:1px solid #f3f4f6; background:#f9fafb;">
+        <a href="{% url 'communications:delete_read' %}" style="flex:1; text-align:center; padding:8px; font-size:13px; color:#6b7280; text-decoration:none; font-weight:600; background:white; border:1px solid #e5e7eb; border-radius:8px;">Clear read</a>
+        <a href="{% url 'communications:list' %}?filter=today" style="flex:1; text-align:center; padding:8px; font-size:13px; color:white; text-decoration:none; font-weight:700; background:#1e4a8a; border-radius:8px;">
+          View all {% if unread_today_count %}({{ unread_today_count }}){% endif %}
+        </a>
+      </div>
+    </div>
+    
+    <div id="profileDrop" style="display:none;position:absolute;top:42px;right:48px;width:230px;background:white;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid #e5e7eb;overflow:hidden;z-index:99">
+      <div style="padding:12px 14px;border-bottom:1px solid #f3f4f6;background:#f9fafb">
+        <div style="font-size:13px;font-weight:800;color:#111">{{ request.user.first_name|default:request.user.username }}</div>
+        <div style="font-size:11px;color:#6b7280">{{ request.user.email }}</div>
+      </div>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 9 15a1.65 1.65 0 0 0-1-1.51V13a2 2 0 0 1 4 0v.49c.38.23.66.57 1 1.51z"/></svg>
+        Settings
+      </a>
+      <a href="#" style="display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13px;color:#374151;text-decoration:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        My Profile
+      </a>
+      <a href="/billing/" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;font-size:13px;color:#111;text-decoration:none;font-weight:700;background:#f0f7ff;">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e4a8a" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Billing & Subscription
+        </span>
+        <span style="font-size:10px;background:#dc2626;color:white;padding:2px 6px;border-radius:10px;">65k</span>
+      </a>
+      <div style="height:1px;background:#f3f4f6"></div>
+      <div style="padding:12px 14px">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#9ca3af">DEVELOPED BY</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <div style="width:32px;height:32px;background:#1e4a8a;color:white;border-radius:8px;display:grid;place-items:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#111">AfriAuthor</div>
+            <div style="font-size:10px;color:#6b7280">Builds for Africa • v1.0.0</div>
+          </div>
+        </div>
+      </div>
+      <div style="height:1px;background:#f3f4f6"></div>
+      <a href="{% url 'users:logout' %}" style="width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px;color:#dc2626;text-decoration:none;font-weight:700">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleProfile(){
+  const d=document.getElementById('profileDrop');
+  const b=document.getElementById('notifDrop');
+  b.style.display='none';
+  d.style.display=d.style.display==='none'||d.style.display===''?'block':'none';
+}
+function toggleBell(){
+  const d=document.getElementById('notifDrop');
+  const p=document.getElementById('profileDrop');
+  p.style.display='none';
+  d.style.display=d.style.display==='none'||d.style.display===''?'block':'none';
+  if(d.style.display==='block'){
+    fetch("{% url 'communications:recent' %}")
+      .then(r=>r.json()).then(data=>{/* optional live refresh */});
+  }
+}
+document.addEventListener('click', function(e){
+  const bell=document.getElementById('bellBtn');
+  const drop=document.getElementById('notifDrop');
+  const profBtn=document.getElementById('profileBtn');
+  const profDrop=document.getElementById('profileDrop');
+  if(!bell.contains(e.target) && !drop.contains(e.target)){ drop.style.display='none'; }
+  if(!profBtn.contains(e.target) && !profDrop.contains(e.target)){ profDrop.style.display='none'; }
+});
+</script>

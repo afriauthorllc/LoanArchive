@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% block table_title %}Tables{% endblock %}{% endblock %}
+
+{% block extra-css %}
+<style>
+.view-wrap{ padding:0; padding-bottom:90px; }
+.main-card{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+.card-top{ padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; border-bottom:1px solid #f3f4f6; flex-wrap:wrap; }
+.table-scroll{ overflow:auto; max-height:65vh; -webkit-overflow-scrolling:touch; }
+.table-scroll::-webkit-scrollbar{ height:5px; width:5px; }
+.table-scroll::-webkit-scrollbar-thumb{ background:#cbd5e1; border-radius:10px; }
+.data-table{ width:100%; min-width:520px; border-collapse:collapse; table-layout:fixed; }
+.data-table th{ background:#1e4a8a; color:#fff; font-size:10px; font-weight:700; padding:10px 6px; text-align:left; position:sticky; top:0; z-index:2; }
+.data-table th.filter-th{ background:#eef2ff; padding:4px; top:32px; z-index:1; }
+.data-table th.filter-th input{ width:100%; border:1px solid #d1d5db; border-radius:6px; padding:6px; font-size:11px; outline:none; }
+.data-table td{ padding:8px 6px; font-size:11px; border-bottom:1px solid #f3f4f6; vertical-align:top; word-break:break-word; }
+.count{ padding:8px 12px; font-size:11px; font-weight:700; background:#f9fafb; border-bottom:1px solid #e5e7eb; color:#374151; }
+</style>
+{% block table_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="view-wrap">
+  <div class="main-card">
+    
+    {# ACTIONS BAR + DATE - override if needed #}
+    {% block card_top %}
+    <div class="card-top">
+      {% block table_actions %}
+        <div class="border rounded p-3 d-flex flex-row align-items-center gap-2" style="background:#f8f9fa; display:flex; flex-direction:row; align-items:center; gap:8px; border:1px solid #dee2e6; border-radius:8px; padding:12px; background:#f8f9fa; margin-bottom:16px;">
+  <div style="font-weight:700;">Actions:</div>
+  <div style="position:relative;" id="actionsDropdown">
+    <button type="button" onclick="toggleActions()" style="background:#e9ecef; border:1px solid #dee2e6; border-radius:6px; padding:6px 12px; font-weight:500; cursor:pointer;">
+      Enter payments ▾
+    </button>
+    <div id="placementMenu" style="display:none; position:absolute; top:110%; left:0; background:white; border:1px solid #dee2e6; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:190px; z-index:9999; overflow:hidden;">
+      <a href="{% url 'loans:repayments_page' %}" style="display:block; padding:10px 14px; background:#1e4a8a; color:white; text-decoration:none; font-weight:600;">Enter payments</a>
+      <a href="/view-payments/" style="display:block; padding:10px 14px; color:#212529; text-decoration:none;">View Payments</a>
+      <a href="/edit-payments/" style="display:block; padding:10px 14px; color:#212529; text-decoration:none;">Edit Payments</a>
+      <a href="/reverse-payments/" style="display:block; padding:10px 14px; color:#212529; text-decoration:none;">Reverse Payments</a>
+    </div>
+  </div>
+</div>   
+      {% endblock %}
+      {% block table_date_filter %}{% endblock %}
+    </div>
+    {% endblock %}
+
+    <div class="count">{% block table_count %}Records ({{ data|length }}){% endblock %}</div>
+
+    <div class="table-scroll">
+      <table class="data-table" id="{% block table_id %}dataTable{% endblock %}">
+        <thead>
+          {% block thead %}
+          <tr>
+            <th style="width:18%;">BOOK NO</th>
+            <th style="width:35%;">NAME</th>
+            <th style="width:24%;">AMOUNT</th>
+            <th style="width:23%;">ACTION</th>
+          </tr>
+          <tr>
+            <th class="filter-th"><input type="text" data-col="0" placeholder="Book"></th>
+            <th class="filter-th"><input type="text" data-col="1" placeholder="Name"></th>
+            <th class="filter-th"><input type="text" data-col="2" placeholder="UGX"></th>
+            <th class="filter-th"><input type="text" disabled style="background:#f9fafb;"></th>
+          </tr>
+          {% endblock %}
+        </thead>
+        <tbody>
+          {% block tbody %}
+          {% for item in data %}
+          <tr>
+            <td>#{{ item.book_number }}</td>
+            <td>{{ item.loan.client.full_name }}</td>
+            <td>UGX {{ item.amount }}</td>
+            <td><a href="/edit-payments/{{ item.id }}/">Edit</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" style="text-align:center; padding:20px; color:#9ca3af;">No data</td></tr>
+          {% endfor %}
+          {% endblock %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra-js %}
+<script>
+function toggleActions(){
+  const m = document.getElementById('placementMenu');
+  m.style.display = m.style.display === 'none' || m.style.display === '' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e){
+  const wrap = document.getElementById('actionsDropdown');
+  if(wrap && !wrap.contains(e.target)){
+    document.getElementById('placementMenu').style.display = 'none';
+  }
+});
+</script>
+
+{% block table_js %}
+<script>
+(function(){
+  const table = document.querySelector('.data-table');
+  if(!table) return;
+  table.querySelectorAll('th.filter-th input[data-col]').forEach(input=>{
+    input.addEventListener('input', ()=>{
+      const col = input.dataset.col;
+      const val = input.value.toLowerCase();
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        const cell = tr.cells[col];
+        if(!cell) return;
+        tr.style.display = cell.innerText.toLowerCase().includes(val) ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
+{% endblock %}
+{% endblock %}
+

@@ -6,6 +6,8 @@ from loans.models import Loan
 from .models import Repayment
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
+from django.utils import timezone
+import datetime
 
 @login_required
 def repayment_page(request):
@@ -56,17 +58,26 @@ def repayment_live_filter(request):
     if q:
         repayments = repayments.filter(Q(book_number__icontains=q) | Q(loan__client__first_name__icontains=q) | Q(loan__client__last_name__icontains=q))
     return render(request, 'loans/live_filter.html', {'repayments': repayments, 'q': q})
-        
+
 def view_repayments(request):
-    # Get date from ?date=2026-10-27 or default to today
-    selected_date = request.GET.get('date')
-    if not selected_date:
-        selected_date = timezone.now().date().isoformat()
-    
-    repayments = Repayment.objects.filter(collection_date=selected_date).select_related('loan')
-    
+    selected_date_str = request.GET.get('date', '').strip()
+
+    if not selected_date_str:
+        # default to TODAY in your timezone
+        selected_date = timezone.localdate()
+    else:
+        try:
+            selected_date = datetime.datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            selected_date = timezone.localdate()
+
+    repayments = Repayment.objects.filter(
+        collection_date=selected_date
+    ).select_related('loan')
+
     return render(request, 'loans/view_repayments.html', {
         'payments': repayments,
-        'selected_date': selected_date
+        'selected_date': selected_date.isoformat(),  # YYYY-MM-DD for input
     })
+    
     

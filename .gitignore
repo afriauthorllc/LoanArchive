@@ -6,3 +6,5 @@ __pycache__/
 staticfiles/
 clients/passports/
 media/
+.env
+db.sqlite3

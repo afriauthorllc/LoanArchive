@@ -7,15 +7,20 @@ from django.http import HttpResponse
 
 app_name = 'users'
 def debug_email(request):
+    import os, requests
     try:
-        send_mail(
-            'LoanArchive Test',
-            'If you got this, Resend is working!',
-            'LoanArchive <noreply@loanarchive.com>',
-            ['methtrevor3@gmail.com'],
-            fail_silently=False,
+        r = requests.post(
+            'https://api.resend.com/emails',
+            headers={'Authorization': f"Bearer {os.environ.get('RESEND_API_KEY')}", 'Content-Type': 'application/json'},
+            json={
+                'from': 'LoanArchive <noreply@loanarchive.com>',
+                'to': ['methtrevor3@gmail.com'],
+                'subject': 'LoanArchive Test',
+                'html': '<p>If you got this, Resend is working!</p>'
+            },
+            timeout=10,
         )
-        return HttpResponse("SENT - Check Resend Dashboard -> Emails + Gmail Spam")
+        return HttpResponse(f"STATUS: {r.status_code} - {r.text}")
     except Exception as e:
         return HttpResponse(f"ERROR: {e}")
         

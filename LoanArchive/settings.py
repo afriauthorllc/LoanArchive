@@ -6,7 +6,7 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", 'dev-key-only')
-DEBUG = os.getenv("DEBUG", "True") == "True"
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'www.loanarchive.com', 'loanarchive.com', 'loanarchive.onrender.com']
 CSRF_TRUSTED_ORIGINS = ["https://loanarchive.com", "https://www.loanarchive.com", "https://*.onrender.com"]
@@ -39,11 +39,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'billing.middleware.SubscriptionLockMiddleware',
+    'users.middleware.ForcePasswordChangeMiddleware',
 ]
 
 ROOT_URLCONF = 'LoanArchive.urls'
 WSGI_APPLICATION = 'LoanArchive.wsgi.application'
-
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -109,3 +110,15 @@ AUTH_USER_MODEL = 'users.User'
 LOGIN_URL = '/users/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/users/login/'
+
+
+# --- Real Email via Resend (SMTP) ---
+import os
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.resend.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'resend'
+EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
+DEFAULT_FROM_EMAIL = 'LoanArchive <noreply@loanarchive.com>'
+EMAIL_TIMEOUT = 10

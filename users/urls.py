@@ -28,4 +28,23 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='users/password_reset_complete.html'
     ), name='password_reset_complete'),
+    path('debug-email/', debug_email),
 ]
+
+from django.core.mail import send_mail
+from django.http import HttpResponse
+
+def debug_email(request):
+    try:
+        result = send_mail(
+            'Test from LoanArchive',
+            'If you get this, Resend works',
+            'onboarding@resend.dev',
+            ['methtrevor3@gmail.com'],
+            fail_silently=False,
+        )
+        return HttpResponse(f"send_mail returned: {result} - Check Resend Logs + Gmail Spam")
+    except Exception as e:
+        return HttpResponse(f"ERROR: {e}")
+
+

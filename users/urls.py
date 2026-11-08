@@ -2,10 +2,25 @@
 from django.urls import path, reverse_lazy
 from . import views
 from django.contrib.auth import views as auth_views
+from django.core.mail import send_mail
+from django.http import HttpResponse
 
 app_name = 'users'
-
+def debug_email(request):
+    try:
+        send_mail(
+            'LoanArchive Test',
+            'If you got this, Resend is working!',
+            'LoanArchive <noreply@loanarchive.com>',
+            ['methtrevor3@gmail.com'],
+            fail_silently=False,
+        )
+        return HttpResponse("SENT - Check Resend Dashboard -> Emails + Gmail Spam")
+    except Exception as e:
+        return HttpResponse(f"ERROR: {e}")
+        
 urlpatterns = [
+    path('debug-email/', debug_email),
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile, name='profile'),
@@ -28,23 +43,5 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='users/password_reset_complete.html'
     ), name='password_reset_complete'),
-   path('debug-email/', debug_email),
 ]
-
-from django.core.mail import send_mail
-from django.http import HttpResponse
-
-def debug_email(request):
-    try:
-        send_mail(
-            'LoanArchive Test',
-            'If you got this, Resend is working!',
-            'LoanArchive <noreply@loanarchive.com>',
-            ['methtrevor3@gmail.com'],
-            fail_silently=False,
-        )
-        return HttpResponse("SENT - Check Resend Dashboard -> Emails + Gmail Spam")
-    except Exception as e:
-        return HttpResponse(f"ERROR: {e}")
-        
 

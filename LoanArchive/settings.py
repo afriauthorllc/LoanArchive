@@ -120,5 +120,5 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'resend'
 EMAIL_HOST_PASSWORD = os.environ.get('RESEND_API_KEY')
-DEFAULT_FROM_EMAIL = 'LoanArchive <noreply@loanarchive.com>'
+DEFAULT_FROM_EMAIL = 'onboarding@resend.dev'
 EMAIL_TIMEOUT = 10

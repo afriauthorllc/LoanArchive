@@ -113,7 +113,8 @@ LOGOUT_REDIRECT_URL = '/users/login/'
 
 
 # --- Real Email via Resend (SMTP) ---
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'users.resend_backend.ResendBackend'
 EMAIL_HOST = 'smtp.resend.com'
 EMAIL_PORT = 2525
 EMAIL_USE_TLS = True

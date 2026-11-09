@@ -40,23 +40,3 @@ def force_password_change(request):
     return render(request, 'users/force_password_change.html', {'form': form})
         
         
-from django.contrib.auth.views import PasswordResetView, PasswordResetDoneView
-
-class CustomPasswordResetView(PasswordResetView):
-    template_name = 'users/password_reset_email.html'  # keep your existing form template if different, change this line if needed
-    # If your reset form template is named differently, use that name here
-    # e.g. template_name = 'users/password_reset_form.html'
-
-    def form_valid(self, form):
-        # Save email to session so the done page can show it
-        self.request.session['reset_email'] = form.cleaned_data.get('email')
-        return super().form_valid(form)
-
-class CustomPasswordResetDoneView(PasswordResetDoneView):
-    template_name = 'users/password_reset_done.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['email'] = self.request.session.get('reset_email', '')
-        return context
-        

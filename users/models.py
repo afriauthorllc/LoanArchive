@@ -38,6 +38,8 @@ from django.utils.translation import gettext_lazy as _
 class User(AbstractUser):
     """
     Custom User Model supporting system admins, company owners, and branch staff roles.
+    Username and email are SEPARATE fields.
+    Login can be with either username OR email.
     """
     class Role(models.TextChoices):
         SUPERUSER = 'SUPERUSER', _('Admin Superuser')
@@ -53,7 +55,7 @@ class User(AbstractUser):
         default=Role.FIELD_OFFICER
     )
 
-    # NEW: For temp password flow
+    # Username and email are separate, both unique, no syncing
     email = models.EmailField(unique=True, help_text="Used for login and temp password email.")
     must_change_password = models.BooleanField(
         default=True,
@@ -77,16 +79,15 @@ class User(AbstractUser):
         help_text="Applicable for Branch-level staff members."
     )
 
-    # Login with email, not username
+    # Login field is still email for Django internals,
+    # but our custom backend also allows login with username
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     def save(self, *args, **kwargs):
         if self.is_superuser:
             self.role = self.Role.SUPERUSER
-        # Keep username in sync with email if empty
-        if not self.username and self.email:
-            self.username = self.email
+        # No syncing username <-> email. They stay separate.
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -98,4 +99,5 @@ class User(AbstractUser):
 
     def is_manager_or_above(self):
         return self.role in [self.Role.MANAGER, self.Role.OWNER, self.Role.SUPERUSER]
+        
         

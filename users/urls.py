@@ -6,26 +6,7 @@ from django.core.mail import send_mail
 from django.http import HttpResponse
 
 app_name = 'users'
-def debug_email(request):
-    import os, requests
-    try:
-        r = requests.post(
-            'https://api.resend.com/emails',
-            headers={'Authorization': f"Bearer {os.environ.get('RESEND_API_KEY')}", 'Content-Type': 'application/json'},
-            json={
-                'from': 'LoanArchive <noreply@loanarchive.com>',
-                'to': ['methtrevor3@gmail.com'],
-                'subject': 'LoanArchive Test',
-                'html': '<p>If you got this, Resend is working!</p>'
-            },
-            timeout=10,
-        )
-        return HttpResponse(f"STATUS: {r.status_code} - {r.text}")
-    except Exception as e:
-        return HttpResponse(f"ERROR: {e}")
-        
 urlpatterns = [
-    path('debug-email/', debug_email),
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile, name='profile'),

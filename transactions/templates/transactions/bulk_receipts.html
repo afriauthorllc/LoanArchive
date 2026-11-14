@@ -39,13 +39,24 @@
   
   
 
+  
   @media print {
-    header, nav, footer, aside, .header, .navbar, .topbar, .sidebar,
-    .bottom-nav, .bottom_nav, .app-nav, .app-header, .app-footer,
-    .site-header, .site-footer, .main-nav, .mobile-nav, .controls { display: none !important; }
-    html, body, main, .container, .content, .page, #app, #root { background: white !important; margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: none !important; box-shadow: none !important; }
-    .receipt-page { background: white !important; padding: 0 !important; margin: 0 !important; gap: 0 !important; display: block !important; }
-    .receipt { width: 80mm !important; max-width: 80mm !important; margin: 0 auto !important; padding: 0 4mm 6mm !important; background: white !important; color: #000 !important; box-shadow: none !important; border: none !important; page-break-after: always !important; break-after: page !important; }
+    /* Hide EVERYTHING, then show only receipts - no need to know topbar class */
+    body * { visibility: hidden !important; }
+    .receipt-page, .receipt-page * { visibility: visible !important; }
+    .receipt-page {
+      position: absolute !important; left: 0 !important; top: 0 !important;
+      width: 100% !important; margin: 0 !important; padding: 0 !important;
+      background: white !important; display: block !important;
+    }
+    .controls { display: none !important; visibility: hidden !important; }
+    .receipt {
+      width: 80mm !important; max-width: 80mm !important;
+      margin: 0 auto !important; padding: 0 4mm 6mm !important;
+      background: white !important; color: #000 !important;
+      box-shadow: none !important; border: none !important;
+      page-break-after: always !important; break-after: page !important;
+    }
     .receipt:last-child { page-break-after: auto !important; break-after: auto !important; }
     @page { size: 80mm auto; margin: 0; }
   }

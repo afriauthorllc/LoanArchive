@@ -1,18 +1,90 @@
 {% extends 'base.html' %}
+{% block title %}Receipt {{ verify_code }} - LoanArchive{% endblock %}
+
+{% block extra_css %}
+<style>
+  .receipt-page { background: #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 400px; width: 100%; }
+  .controls button, .controls a { padding: 14px 16px; border-radius: 10px; border: none; font-family: -apple-system, sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; flex: 1; text-align: center; text-decoration: none; }
+  .btn-print { background: #1e3a5f; color: white; }
+  .btn-back { background: white; color: #1e3a5f; border: 1px solid #ddd !important; }
+  .receipt { width: 80mm; background: white; padding: 10mm 4mm 6mm; color: #000; font-size: 12px; line-height: 1.4; font-family: 'Courier New', monospace; }
+  .center { text-align: center; }
+  .logo { font-size: 22px; font-weight: 900; letter-spacing: 1px; }
+  .sub { font-size: 10px; color: #333; }
+  .divider { border-top: 1px dashed #000; margin: 8px 0; }
+  .paid { border: 2px solid #000; width: 130px; margin: 0 auto 14px; text-align: center; font-weight: 700; letter-spacing: 4px; font-size: 18px; padding: 4px; transform: rotate(-2deg); }
+  .row { display: flex; justify-content: space-between; padding: 2px 0; gap: 8px; }
+  .row span:first-child { color: #333; flex-shrink: 0; }
+  .row b { text-align: right; word-break: break-word; }
+  .highlight-box { border: 1px solid #000; padding: 8px; margin: 8px 0; }
+  .highlight-box .row.balance { font-size: 15px; font-weight: 900; border-top: 1px dashed #000; padding-top: 6px; margin-top: 6px; }
+  .footer { font-size: 10px; text-align: center; margin-top: 10px; line-height: 1.5; }
+  .signature { display: flex; justify-content: space-between; margin-top: 18px; font-size: 10px; }
+  .signature div { border-top: 1px solid #000; padding-top: 4px; width: 45%; text-align: center; }
+  .qr-box { border: 1px dashed #000; padding: 10px; margin: 10px 0; text-align: center; }
+  .qr-box img { width: 110px; height: 110px; display: block; margin: 0 auto 6px; }
+  .qr-box .qr-code-text { font-size: 10px; font-weight: 900; word-break: break-all; }
+  .qr-box .qr-hint { font-size: 10px; color: #333; margin-top: 2px; }
+  @media print {
+    .receipt-page { background: white; padding: 0; gap: 0; }
+    .controls { display: none !important; }
+    .receipt { width: 80mm; padding: 0 0 6mm; }
+    @page { size: 80mm auto; margin: 0; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-  <button onclick="window.print()" class="btn btn-primary mb-3">Print</button>
-  <div class="card p-4">
-    <h4>LoanArchive - Receipt</h4>
-    <p><strong>Book #:</strong> {{ repayment.book_number }}</p>
-    <p><strong>Client:</strong> {{ repayment.loan.client.full_name }}</p>
-    <p><strong>Amount:</strong> UGX {{ repayment.amount_paid|floatformat:0 }}</p>
-    <p><strong>Mode:</strong> {{ repayment.payment_mode }}</p>
-    <p><strong>Date:</strong> {{ repayment.collection_date }}</p>
-    <p><strong>Branch:</strong> {{ repayment.branch }}</p>
-    <p><strong>Collected By:</strong> {{ repayment.collected_by }}</p>
-    <p><strong>Verify Code:</strong> {{ repayment.verify_code }}</p>
-    <p><strong>Verify:</strong> {{ repayment.verify_url }}</p>
+<div class="receipt-page">
+  <div class="controls">
+    <a class="btn-back" href="{% url 'receipt_list' %}">← Back</a>
+    <button class="btn-print" onclick="window.print()">🖨 Print</button>
+  </div>
+
+  <div class="receipt">
+    <div class="paid">PAID</div>
+    <div class="center">
+      <div>🏠</div>
+      <div class="logo">LOANARCHIVE</div>
+      <div class="sub">LoanArchive • loanarchive.com<br>Jinja, Uganda</div>
+    </div>
+    <div class="divider"></div>
+    <div class="center" style="font-weight:900; font-size:14px;">PAYMENT RECEIPT</div>
+
+    <!-- 1. IDENTITY - all from _receipt_context -->
+    <div class="row"><span>Receipt No:</span><b>{{ verify_code|default:repayment.verify_code }}</b></div>
+    <div class="row"><span>Date:</span><b>{{ repayment.collected_at|date:"d M Y, h:i A" }}</b></div>
+    <div class="row"><span>Client Name:</span><b>{{ client_name|default:repayment.loan.client.full_name }}</b></div>
+    <div class="row"><span>Loan ID:</span><b>{{ loan_id|default:repayment.loan.pk }}</b></div>
+    <div class="row"><span>Loan Date:</span><b>{{ loan_date|date:"d M Y"|default:"-" }}</b></div>
+    <div class="row"><span>End Date:</span><b>{{ end_date|date:"d M Y"|default:"-" }}</b></div>
+    <div class="row"><span>Book No:</span><b>Book #{{ repayment.book_number }}</b></div>
+    <div class="row"><span>Payment Method:</span><b>{{ repayment.payment_mode }}</b></div>
+    <div class="row"><span>Branch:</span><b>{{ repayment.branch|default:"-" }}</b></div>
+
+    <div class="divider"></div>
+
+    <!-- 2. MONEY -->
+    <div class="highlight-box">
+      <div class="row"><span>Loan Amount:</span><b>UGX {{ total_payable|floatformat:0 }}</b></div>
+      <div class="row"><span>Paid Today:</span><b>UGX {{ repayment.amount_paid|floatformat:0 }}</b></div>
+      <div class="row"><span>Paid So Far:</span><b>UGX {{ total_paid|floatformat:0 }}</b></div>
+      <div class="row balance"><span>Current Loan Balance:</span><b>UGX {{ balance|floatformat:0 }}</b></div>
+    </div>
+
+    <!-- 3. PROOF -->
+    <div class="row"><span>Received By:</span><b>{{ repayment.collected_by|default:"Admin" }}</b></div>
+
+    <div class="qr-box">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data={{ qr_data|urlencode }}" alt="Scan to verify receipt">
+      <div class="qr-code-text">{{ verify_code|default:repayment.verify_code }}</div>
+      <div class="qr-hint">Scan to verify this receipt is real<br>or visit loanarchive.com/verify</div>
+    </div>
+
+    <div class="center" style="font-size:11px; margin-top:4px;">Thank you for your payment!</div>
+    <div class="signature"><div>Client Signature</div><div>Admin Signature</div></div>
+    <div class="footer">--------------------------------<br>Keep this receipt for your records.<br>For enquiries, contact LoanArchive<br>Powered by LoanArchive</div>
   </div>
 </div>
 {% endblock %}

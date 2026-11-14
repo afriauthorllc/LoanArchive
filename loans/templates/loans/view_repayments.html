@@ -48,7 +48,7 @@
   <td><div style="font-weight:800;">#{{ p.book_number }}</div><div style="font-size:9px; color:#6b7280;">LN-{{ p.loan.id|stringformat:"04d" }}</div></td>
   <td><div style="font-weight:700; text-transform:uppercase;">{{ p.loan.client.full_name }}</div><div style="font-size:9px; color:#6b7280;">{{ p.loan.client.telephone_number }}</div></td>
   <td style="font-weight:800; color:#1e4a8a;">UGX {{ p.amount_paid|floatformat:0 }}</td>
-  <td><div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+  <td><div style="display:flex; flex-direction:row; gap:6px; align-items:center; flex-wrap:nowrap;">
     <a href="/edit-payments/{{ p.id }}/" style="border:1px solid #1e4a8a; color:#1e4a8a; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:700; text-decoration:none;">Edit</a>
     <a href="/transactions/receipts/bulk/?ids={{ p.id }}" target="_blank" style="border:1px solid #1e4a8a; background:#1e4a8a; color:white; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:700; text-decoration:none;">View Receipt</a>
   </div></td>

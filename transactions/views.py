@@ -243,3 +243,13 @@ def bulk_receipts(request):
         'ids': ids,
     })
     
+@login_required
+def receipt_detail(request, pk):
+    repayment = get_object_or_404(
+        Repayment.objects.select_related('loan', 'loan__client', 'branch', 'collected_by'),
+        pk=pk
+    )
+    return render(request, 'transactions/receipt_detail.html', {
+        'repayment': repayment,
+    })
+    

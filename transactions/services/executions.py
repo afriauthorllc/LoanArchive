@@ -14,7 +14,13 @@ def create_repayment(request, loan_id):
     loan = get_object_or_404(Loan, pk=loan_id)
     if request.method == 'POST':
         try:
-            Repayment.objects.create(book_number=request.POST.get('book_number','').strip() or f"TEMP-{loan_id}", loan=loan, amount_paid=Decimal(request.POST.get('amount_paid','0')), payment_mode=request.POST.get('payment_mode','CASH'), collected_by=request.user)
+            Repayment.objects.create(
+                book_number=request.POST.get('book_number','').strip() or f"TEMP-{loan_id}",
+                loan=loan,
+                amount_paid=Decimal(request.POST.get('amount_paid','0')),
+                payment_mode=request.POST.get('payment_mode','CASH'),
+                collected_by=request.user
+            )
             messages.success(request, 'Payment Recorded!')
         except Exception as e:
             messages.error(request, str(e))
@@ -33,48 +39,52 @@ def bulk_repayment_submit(request):
         saved = 0
         total = Decimal('0')
         errors = []
-        breakdown = []  # for your success modal
-        created_ids = []  # <-- 1. NEW: collect IDs for View Receipts
+        breakdown = []
+        created_ids = []
 
         with transaction.atomic():
             for item in repayments:
                 try:
                     loan_id = item.get('loan_id')
                     raw_amount = item.get('amount') or item.get('amount_paid')
+                    book_number = str(item.get('book_number','')).strip()
                     
                     if not loan_id or not raw_amount:
                         raise ValueError('Missing loan_id or amount')
+                    if not book_number:
+                        raise ValueError('Book number is required')
                     
                     amount = Decimal(str(raw_amount))
                     if amount <= 0:
                         raise ValueError('Amount must be > 0')
 
-                    # Fetch for breakdown display
+                    # Prevent duplicate book numbers
+                    if Repayment.objects.filter(book_number=book_number).exists():
+                        raise ValueError(f'Book #{book_number} already used')
+
                     loan = None
                     client_name = "Client"
                     try:
-                        from loans.models import Loan
-                        loan = Loan.objects.select_related('client').get(id=loan_id)
-                        client_name = getattr(loan.client, 'full_name', str(loan.client)) if hasattr(loan, 'client') else f"Book {item.get('book_number')}"
-                    except:
-                        pass
+                        loan = Loan.objects.select_related('client').get(id=int(loan_id))
+                        client_name = getattr(loan.client, 'full_name', str(loan.client)) if hasattr(loan, 'client') else f"Book {book_number}"
+                    except Loan.DoesNotExist:
+                        raise ValueError(f'Loan {loan_id} not found')
 
-                    # <-- 2. CHANGED: capture the created object
                     repayment = Repayment.objects.create(
-                        book_number=str(item.get('book_number','')).strip(),
-                        loan_id=loan_id,
+                        book_number=book_number,
+                        loan_id=int(loan_id),
                         amount_paid=amount,
                         payment_mode=item.get('payment_mode', 'CASH'),
                         collected_by=request.user
                     )
-                    created_ids.append(repayment.id)  # <-- 3. NEW: save its ID
+                    created_ids.append(repayment.id)
                     
                     saved += 1
                     total += amount
                     breakdown.append({
                         'client': client_name,
                         'amount': float(amount),
-                        'book_number': str(item.get('book_number','')).strip(),
+                        'book_number': book_number,
                     })
 
                 except (InvalidOperation, ValueError) as e:
@@ -82,20 +92,27 @@ def bulk_repayment_submit(request):
                 except Exception as e:
                     errors.append(f"Book {item.get('book_number')}: {str(e)}")
 
-        # If AJAX - this is what your toast + modal will use
+        # FIXED: if nothing saved, don't return success + empty ids
+        if saved == 0:
+            return JsonResponse({
+                'success': False,
+                'error': errors[0] if errors else 'No payments saved',
+                'errors': errors,
+                'ids': [],
+            }, status=400)
+
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
             return JsonResponse({
                 'success': True,
                 'saved': saved,
                 'total': float(total),
-                'total_formatted': f"{total:,.0f}",  # 38,000
+                'total_formatted': f"{total:,.0f}",
                 'message': f'{saved} payments recorded • UGX {total:,.0f} total',
-                'breakdown': breakdown,  # use this to render the list in modal
-                'ids': created_ids,  # <-- 4. NEW: [42] or [42,43,44]
+                'breakdown': breakdown,
+                'ids': created_ids,
                 'errors': errors
             })
         
-        # Fallback non-JS
         messages.success(request, f'{saved} payments recorded • UGX {total:,.0f} total')
         return JsonResponse({'success': True, 'saved': saved, 'ids': created_ids})
 
@@ -109,14 +126,13 @@ def edit_repayment(request, pk):
     payment = get_object_or_404(Repayment.objects.select_related('loan', 'loan__client'), pk=pk)
     loan = payment.loan
     
-    # Max allowed = current payment + outstanding (so user can increase up to balance)
-    max_allowed = loan.outstanding_balance + payment.amount
+    # FIXED: field is amount_paid, not amount. Variable is payment, not repayment.
+    max_allowed = loan.outstanding_balance + payment.amount_paid
 
     if request.method == 'POST':
         book_number = request.POST.get('book_number', '').strip()
         amount_paid = request.POST.get('amount_paid', '').strip()
 
-        # Validation
         if not book_number:
             messages.error(request, "Book number is required")
         elif Repayment.objects.filter(book_number=book_number).exclude(pk=payment.pk).exists():
@@ -129,16 +145,17 @@ def edit_repayment(request, pk):
                 if amount_paid > max_allowed:
                     messages.error(request, f"Amount exceeds max allowed UGX {max_allowed}")
                 else:
-                    repayment.book_number = book_number
-                    repayment.amount_paid = amount_paid
-                    repayment.save()
+                    # FIXED: was repayment.xxx -> NameError
+                    payment.book_number = book_number
+                    payment.amount_paid = amount_paid
+                    payment.save()
                     messages.success(request, f"Payment #{book_number} updated")
-                    return redirect('loans:view_payments')  # change to your view name
+                    return redirect('loans:view_payments')
             except ValueError:
                 messages.error(request, "Invalid amount")
 
     context = {
-        'repayment': repayment,
+        'repayment': payment,
         'loan': loan,
         'max_allowed': max_allowed,
     }

@@ -27,9 +27,22 @@
   .qr-box .qr-code-text { font-size: 10px; font-weight: 900; word-break: break-all; }
   .qr-box .qr-hint { font-size: 10px; color: #333; margin-top: 2px; }
   @media print {
-    .receipt-page { background: white; padding: 0; gap: 0; }
+    /* Hide base.html header / nav / footer / everything except receipts */
+    body * { visibility: hidden !important; }
+    .receipt-page, .receipt-page * { visibility: visible !important; }
+    .receipt-page {
+      position: absolute !important; left: 0 !important; top: 0 !important;
+      width: 100% !important; background: white !important;
+      padding: 0 !important; margin: 0 !important; gap: 0 !important;
+      display: block !important;
+    }
     .controls { display: none !important; }
-    .receipt { width: 80mm; padding: 0 0 6mm; }
+    .receipt {
+      width: 80mm !important; max-width: 80mm !important;
+      padding: 0 0 6mm !important; margin: 0 auto !important;
+      page-break-after: always !important; break-after: page !important;
+    }
+    .receipt:last-child { page-break-after: auto !important; break-after: auto !important; }
     @page { size: 80mm auto; margin: 0; }
   }
 </style>

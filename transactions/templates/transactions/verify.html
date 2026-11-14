@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Verify Receipt - LoanArchive{% endblock %}
+
+{% block extra_css %}
+<style>
+  .verify-page { background: #f1f5f9; padding: 16px; display: flex; justify-content: center; }
+  .verify-page .card { width: 100%; max-width: 400px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+  .verify-page .header { background: #1e3a5f; color: white; padding: 20px; text-align: center; }
+  .verify-page .header .logo { font-size: 20px; font-weight: 900; letter-spacing: 1px; }
+  .verify-page .header .sub { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+  .verify-page .body { padding: 20px; }
+  .verify-page .status { text-align: center; padding: 16px; border-radius: 12px; margin-bottom: 16px; }
+  .verify-page .status.ok { background: #dcfce7; color: #166534; }
+  .verify-page .status.bad { background: #fee2e2; color: #991b1b; }
+  .verify-page .status .big { font-size: 28px; }
+  .verify-page .status .txt { font-size: 18px; font-weight: 900; margin-top: 6px; }
+  .verify-page .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e5e7eb; font-size: 14px; gap: 8px; }
+  .verify-page .row span { color: #64748b; flex-shrink: 0; }
+  .verify-page .row b { text-align: right; }
+  .verify-page .row.total { font-size: 16px; font-weight: 900; border-bottom: none; border-top: 2px solid #000; margin-top: 8px; padding-top: 12px; }
+  .verify-page .footer { text-align: center; font-size: 12px; color: #94a3b8; padding: 0 20px 20px; line-height: 1.5; }
+  .verify-page .manual { margin-top: 16px; }
+  .verify-page .manual input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; font-size: 14px; text-transform: uppercase; }
+  .verify-page .manual button { width: 100%; margin-top: 8px; padding: 12px; border: none; border-radius: 10px; background: #1e3a5f; color: white; font-weight: 700; cursor: pointer; }
+  .verify-page .links { display: flex; gap: 10px; margin-top: 12px; }
+  .verify-page .links a { flex: 1; text-align: center; background: #e2e8f0; color: #1e3a5f; text-decoration: none; padding: 11px; border-radius: 10px; font-weight: 700; font-size: 14px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="verify-page">
+  <div class="card">
+    <div class="header">
+      <div class="logo">🏠 LOANARCHIVE</div>
+      <div class="sub">Receipt Verification • Bugembe, Jinja</div>
+    </div>
+
+    <div class="body">
+      {% if not code %}
+        <!-- NO CODE YET -->
+        <div class="status bad"><div class="big">⚠️</div><div class="txt">NO CODE</div><p style="font-size:13px; margin-top:6px;">Scan a receipt QR or enter code below.</p></div>
+
+      {% elif repayment %}
+        <!-- VERIFIED - REAL DATA FROM DJANGO, NOT FAKE JS DB -->
+        <div class="status ok"><div class="big">✅</div><div class="txt">VERIFIED • PAID</div><p style="font-size:13px; margin-top:6px;">This receipt is genuine and issued by LoanArchive.</p></div>
+        <div class="row"><span>Receipt No:</span><b>{{ verify_code|default:code }}</b></div>
+        <div class="row"><span>Client:</span><b>{{ client_name|default:repayment.loan.client }}</b></div>
+        <div class="row"><span>Book No:</span><b>Book #{{ repayment.book_number }}</b></div>
+        <div class="row"><span>Date:</span><b>{{ repayment.collected_at|date:"d M Y, h:i A"|default:"-" }}</b></div>
+        <div class="row"><span>Loan Amount:</span><b>UGX {{ total_payable|floatformat:0 }}</b></div>
+        <div class="row"><span>Paid Today:</span><b>UGX {{ repayment.amount_paid|floatformat:0 }}</b></div>
+        <div class="row"><span>Total Paid:</span><b>UGX {{ total_paid|floatformat:0 }}</b></div>
+        <div class="row total"><span>Balance:</span><b>UGX {{ balance|floatformat:0 }}</b></div>
+
+        <div class="links">
+          <a href="{% url 'receipt_detail' repayment.pk %}">🧾 View Receipt</a>
+          <a href="{% url 'scanner' %}">📷 Scan Again</a>
+        </div>
+
+      {% else %}
+        <!-- INVALID -->
+        <div class="status bad"><div class="big">❌</div><div class="txt">INVALID RECEIPT</div><p style="font-size:13px; margin-top:6px;">Code <b>{{ code }}</b> was not found.<br>Do not accept this receipt. Contact LoanArchive.</p></div>
+      {% endif %}
+
+      <!-- Manual entry - always shown, uses GET so scanner + manual both work -->
+      <form class="manual" method="get" action="{% url 'verify' %}">
+        <input name="code" value="{{ code }}" placeholder="e.g. RCT-003-T9K3W8" autocomplete="off">
+        <button type="submit">{% if repayment %}Verify Another{% elif code %}Try Again{% else %}Verify Receipt{% endif %}</button>
+      </form>
+    </div>
+
+    <div class="footer">This page verifies that this receipt was issued by LoanArchive.<br>If it shows INVALID, do not accept the receipt.</div>
+  </div>
+</div>
+{% endblock %}

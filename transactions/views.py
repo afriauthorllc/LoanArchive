@@ -195,3 +195,19 @@ def scanner(request):
         'verify_url': verify_url,
     })
     
+@login_required
+def verify(request):
+    code = request.GET.get('code', '').strip()
+    repayment = None
+    if code:
+        repayment = Repayment.objects.filter(verify_code=code).first()
+        if not repayment:
+            repayment = Repayment.objects.filter(verify_code__iexact=code).first()
+
+    context = {'code': code, 'repayment': repayment, 'searched': bool(code)}
+    if repayment:
+        context.update(_receipt_context(repayment))
+        context['repayment'] = repayment
+        context['code'] = code
+    return render(request, 'transactions/verify.html', context)
+    

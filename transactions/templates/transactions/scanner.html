@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Scan Receipt - LoanArchive{% endblock %}
+
+{% block extra_css %}
+<style>
+  .scanner-page { background: #0f172a; color: white; padding: 16px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: -16px -16px 0; }
+  .scanner-page .top { width: 100%; max-width: 420px; text-align: center; }
+  .scanner-page .logo { font-size: 20px; font-weight: 900; letter-spacing: 1px; margin-top: 8px; }
+  .scanner-page .sub { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+  .scanner-box { width: 100%; max-width: 420px; background: #1e293b; border-radius: 16px; overflow: hidden; margin-top: 16px; position: relative; }
+  #reader { width: 100%; background: black; }
+  #reader video { width: 100% !important; }
+  .hint { text-align: center; font-size: 13px; color: #cbd5e1; padding: 12px; line-height: 1.5; }
+  #reader button { background: #1e3a5f; color: white; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; margin: 6px; }
+  #reader select { padding: 10px; border-radius: 8px; width: 90%; margin: 6px; }
+  .controls-bar { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 0 12px 12px; }
+  .ctrl-btn { display: flex; align-items: center; gap: 8px; background: #334155; color: white; border: 1px solid #475569; padding: 12px 18px; border-radius: 999px; font-weight: 800; font-size: 14px; cursor: pointer; }
+  .ctrl-btn .icon { font-size: 18px; }
+  .ctrl-btn.on { background: #facc15; color: #000; border-color: #facc15; }
+  .ctrl-btn.muted { background: #475569; color: #cbd5e1; }
+  #torchBtn { display: none; }
+  .torch-note { font-size: 11px; color: #94a3b8; text-align: center; padding-bottom: 10px; display: none; }
+  .result { width: 100%; max-width: 420px; background: #dcfce7; color: #166534; border-radius: 12px; padding: 14px; margin-top: 12px; text-align: center; display: none; }
+  .result b { word-break: break-all; }
+  .manual { width: 100%; max-width: 420px; background: white; color: #000; border-radius: 16px; padding: 16px; margin-top: 16px; }
+  .manual h3 { font-size: 15px; margin-bottom: 8px; }
+  .manual p { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+  .manual input { width: 100%; padding: 13px; border-radius: 10px; border: 1px solid #ddd; font-size: 15px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+  .manual button { width: 100%; margin-top: 10px; padding: 13px; border: none; border-radius: 10px; background: #1e3a5f; color: white; font-weight: 800; font-size: 15px; cursor: pointer; }
+  .links { display: flex; gap: 10px; width: 100%; max-width: 420px; margin-top: 16px; }
+  .links a { flex: 1; text-align: center; background: #334155; color: white; text-decoration: none; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 14px; }
+  .status { font-size: 12px; color: #facc15; margin-top: 8px; text-align: center; }
+  .error { width: 100%; max-width: 420px; background: #fee2e2; color: #991b1b; border-radius: 12px; padding: 12px; margin-top: 12px; font-size: 13px; display: none; text-align: center; line-height: 1.5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scanner-page">
+  <div class="top">
+    <div class="logo">🏠 LOANARCHIVE</div>
+    <div class="sub">Staff Receipt Scanner • Bugembe, Jinja</div>
+  </div>
+
+  <div class="scanner-box">
+    <div id="reader"></div>
+    <div class="hint">Point camera at the QR code at the bottom of the receipt.<br>Hold steady for 2 seconds.</div>
+    <div class="controls-bar">
+      <button id="torchBtn" class="ctrl-btn" onclick="toggleTorch()">
+        <span class="icon" id="torchIcon">🔦</span>
+        <span id="torchLabel">Flash</span>
+      </button>
+      <button id="soundBtn" class="ctrl-btn" onclick="toggleSound()">
+        <span class="icon" id="soundIcon">🔊</span>
+        <span id="soundLabel">Sound On</span>
+      </button>
+    </div>
+    <div class="torch-note" id="torchNote">Flash is ON - tap again to turn off</div>
+  </div>
+
+  <div class="status" id="status">Waiting for camera permission...</div>
+  <div class="error" id="errorBox"></div>
+  <div class="result" id="resultBox">Scanned: <b id="resultText"></b><br><span style="font-size:12px;">Opening verification...</span></div>
+
+  <div class="manual">
+    <h3>Camera not working? Type code manually</h3>
+    <p>Look under the QR on the receipt. Type the code like <b>RCT-003-T9K3W8</b></p>
+    <input id="manualInput" placeholder="e.g. RCT-003-T9K3W8" autocomplete="off">
+    <button onclick="verifyManual()">Verify Receipt →</button>
+  </div>
+
+  <div class="links">
+    <a href="{% url 'receipt_list' %}">🧾 Receipts</a>
+    <a href="{{ verify_url|default:'/verify/' }}">✅ Verify Page</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let scanner = null;
+let scanned = false;
+let torchOn = false;
+let soundOn = true;
+const VERIFY_BASE = "{{ verify_url|default:'/verify/' }}";
+
+function showError(msg){
+  const el = document.getElementById('errorBox');
+  el.style.display = 'block';
+  el.innerHTML = msg;
+}
+function setStatus(t){ document.getElementById('status').textContent = t; }
+
+function extractCode(text){
+  text = text.trim();
+  try {
+    if(text.includes('code=')){
+      const u = new URL(text);
+      const c = u.searchParams.get('code');
+      if(c) return c;
+    }
+  } catch(e) {}
+  if(text.includes('/')){
+    const parts = text.split('/');
+    return parts[parts.length-1].split('?')[0];
+  }
+  return text;
+}
+
+function playBeep(){
+  if(!soundOn) { if(navigator.vibrate) navigator.vibrate(100); return; }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880; osc.type = 'square'; gain.gain.value = 0.15;
+    osc.start(); setTimeout(()=> osc.stop(), 120);
+    setTimeout(()=>{
+      const osc2 = ctx.createOscillator(); const gain2 = ctx.createGain();
+      osc2.connect(gain2); gain2.connect(ctx.destination);
+      osc2.frequency.value = 880; osc2.type = 'square'; gain2.gain.value = 0.15;
+      osc2.start(); setTimeout(()=> osc2.stop(), 150);
+    }, 180);
+  } catch(e){}
+  if(navigator.vibrate) navigator.vibrate([100, 50, 150]);
+}
+
+function toggleSound(){
+  soundOn = !soundOn;
+  const btn = document.getElementById('soundBtn');
+  document.getElementById('soundIcon').textContent = soundOn ? '🔊' : '🔇';
+  document.getElementById('soundLabel').textContent = soundOn ? 'Sound On' : 'Sound Off';
+  btn.classList.toggle('muted', !soundOn);
+  if(soundOn) playBeep();
+}
+
+function onScanSuccess(decodedText){
+  if(scanned) return;
+  scanned = true;
+  playBeep();
+  const code = extractCode(decodedText);
+  document.getElementById('resultBox').style.display = 'block';
+  document.getElementById('resultText').textContent = code;
+  setStatus('✅ Scanned! Opening verification...');
+  if(torchOn) { try { scanner.applyVideoConstraints({ advanced: [{ torch: false }] }); } catch(e){} }
+  if(scanner){
+    scanner.stop().catch(()=>{}).then(()=> goToVerify(code));
+    setTimeout(()=> goToVerify(code), 900);
+  } else { goToVerify(code); }
+}
+
+function goToVerify(code){
+  const sep = VERIFY_BASE.includes('?') ? '&' : '?';
+  window.location.href = VERIFY_BASE + sep + 'code=' + encodeURIComponent(code);
+}
+
+function verifyManual(){
+  const v = document.getElementById('manualInput').value.trim();
+  if(!v){ alert('Please type the receipt code first'); return; }
+  goToVerify(v);
+}
+
+function checkTorchSupport(){
+  try {
+    if(!scanner) return;
+    const caps = scanner.getRunningTrackCapabilities();
+    if(caps && caps.torch){ document.getElementById('torchBtn').style.display = 'flex'; }
+    else if(/Android/i.test(navigator.userAgent)) document.getElementById('torchBtn').style.display = 'flex';
+  } catch(e){
+    if(/Android/i.test(navigator.userAgent)) document.getElementById('torchBtn').style.display = 'flex';
+  }
+}
+
+async function toggleTorch(){
+  if(!scanner) return;
+  torchOn = !torchOn;
+  try { await scanner.applyVideoConstraints({ advanced: [{ torch: torchOn }] }); }
+  catch(e){ try { await scanner.applyVideoConstraints({ torch: torchOn }); } catch(e2){} }
+  updateTorchUI();
+}
+
+function updateTorchUI(){
+  const btn = document.getElementById('torchBtn');
+  const icon = document.getElementById('torchIcon');
+  const label = document.getElementById('torchLabel');
+  const note = document.getElementById('torchNote');
+  if(torchOn){
+    btn.classList.add('on'); icon.textContent = '💡'; label.textContent = 'Flash On';
+    note.style.display = 'block'; setStatus('💡 Flash ON - point at QR code');
+  } else {
+    btn.classList.remove('on'); icon.textContent = '🔦'; label.textContent = 'Flash';
+    note.style.display = 'none'; setStatus('📸 Camera on - point at QR code');
+  }
+}
+
+function startScanner(){
+  if(!window.Html5Qrcode){
+    showError('Scanner library failed to load. Check internet and reload.<br>Use manual entry below for now.');
+    setStatus('Library not loaded - use manual entry'); return;
+  }
+  scanner = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+  scanner.start({ facingMode: "environment" }, config, onScanSuccess, ()=>{})
+  .then(()=>{ setStatus('📸 Camera on - point at QR code'); checkTorchSupport(); })
+  .catch(err=>{
+    Html5Qrcode.getCameras().then(cameras=>{
+      if(cameras && cameras.length){
+        scanner.start(cameras[0].id, config, onScanSuccess, ()=>{})
+        .then(()=>{ setStatus('📸 Camera on - point at QR code'); checkTorchSupport(); })
+        .catch(e=> showError('Camera blocked. Please allow camera permission in browser settings and reload.<br>Use manual entry below.'));
+      } else { showError('No camera found on this device.<br>Use manual entry below.'); setStatus('No camera - use manual entry'); }
+    }).catch(()=> showError('Camera permission denied. Allow camera and reload.<br>Use manual entry below.'));
+  });
+}
+
+document.getElementById('manualInput').addEventListener('keydown', e=>{ if(e.key==='Enter') verifyManual(); });
+document.addEventListener('touchstart', function unlockAudio(){
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); } catch(e){}
+  document.removeEventListener('touchstart', unlockAudio);
+}, { once: true });
+
+startScanner();
+</script>
+{% endblock %}

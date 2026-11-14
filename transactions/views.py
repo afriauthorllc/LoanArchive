@@ -179,3 +179,19 @@ def receipt_list(request):
     return render(request, 'transactions/receipt_list.html', {
         'repayments': repayments,
     })
+    
+from django.urls import reverse, NoReverseMatch
+
+@login_required
+def scanner(request):
+    try:
+        verify_url = reverse('verify')
+    except NoReverseMatch:
+        try:
+            verify_url = reverse('verify_receipt')
+        except NoReverseMatch:
+            verify_url = '/verify/'
+    return render(request, 'transactions/scanner.html', {
+        'verify_url': verify_url,
+    })
+    

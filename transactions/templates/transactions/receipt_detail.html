@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+  <button onclick="window.print()" class="btn btn-primary mb-3">Print</button>
+  <div class="card p-4">
+    <h4>LoanArchive - Receipt</h4>
+    <p><strong>Book #:</strong> {{ repayment.book_number }}</p>
+    <p><strong>Client:</strong> {{ repayment.loan.client.full_name }}</p>
+    <p><strong>Amount:</strong> UGX {{ repayment.amount_paid|floatformat:0 }}</p>
+    <p><strong>Mode:</strong> {{ repayment.payment_mode }}</p>
+    <p><strong>Date:</strong> {{ repayment.collection_date }}</p>
+    <p><strong>Branch:</strong> {{ repayment.branch }}</p>
+    <p><strong>Collected By:</strong> {{ repayment.collected_by }}</p>
+    <p><strong>Verify Code:</strong> {{ repayment.verify_code }}</p>
+    <p><strong>Verify:</strong> {{ repayment.verify_url }}</p>
+  </div>
+</div>
+{% endblock %}

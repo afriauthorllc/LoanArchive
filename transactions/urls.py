@@ -24,5 +24,6 @@ urlpatterns = [
     #path('receipts/bulk/', views.bulk_print_receipts, name='bulk_print_receipts'),
     path('receipts/bulk/', views.bulk_receipts, name='bulk_receipts'),
     path('receipts/<int:pk>/', views.receipt_detail, name='receipt_detail'),
+
     
 ]

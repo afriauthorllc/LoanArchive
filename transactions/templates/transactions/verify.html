@@ -54,8 +54,8 @@
         <div class="row total"><span>Balance:</span><b>UGX {{ balance|floatformat:0 }}</b></div>
 
         <div class="links">
-          <a href="{% url 'receipt_detail' repayment.pk %}">🧾 View Receipt</a>
-          <a href="{% url 'scanner' %}">📷 Scan Again</a>
+          <a href="{% url 'transactions:receipt_detail' repayment.pk %}">🧾 View Receipt</a>
+          <a href="{% url 'transactions:scanner' %}">📷 Scan Again</a>
         </div>
 
       {% else %}
@@ -64,7 +64,7 @@
       {% endif %}
 
       <!-- Manual entry - always shown, uses GET so scanner + manual both work -->
-      <form class="manual" method="get" action="{% url 'verify' %}">
+      <form class="manual" method="get" action="{% url 'transactions:verify' %}">
         <input name="code" value="{{ code }}" placeholder="e.g. RCT-003-T9K3W8" autocomplete="off">
         <button type="submit">{% if repayment %}Verify Another{% elif code %}Try Again{% else %}Verify Receipt{% endif %}</button>
       </form>

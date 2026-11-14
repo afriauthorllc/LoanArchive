@@ -3,7 +3,7 @@
 <div class="container py-4">
   <h4>Receipts</h4>
   {% for r in repayments %}
-  <p><a href="{% url 'receipt_detail' r.pk %}">{{ r.verify_code }} - {{ r.loan.client }} - UGX {{ r.amount_paid }}</a></p>
+  <p><a href="{% url 'transactions:receipt_detail' r.pk %}">{{ r.verify_code }} - {{ r.loan.client }} - UGX {{ r.amount_paid }}</a></p>
   {% empty %}<p>No receipts yet</p>{% endfor %}
 </div>
 {% endblock %}

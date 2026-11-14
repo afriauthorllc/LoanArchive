@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Print Receipts ({{ count }}) - LoanArchive{% endblock %}
+{% load static %}
+{% block title %}Receipt {{ receipt_no }} - LoanArchive{% endblock %}
 
 {% block extra_css %}
 <style>
-  .bulk-page { background: #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-  .controls { display: flex; gap: 10px; justify-content: center; max-width: 400px; width: 100%; position: sticky; top: 0; z-index: 10; }
-  .controls a, .controls button { padding: 14px 16px; border-radius: 10px; border: none; font-family: -apple-system, sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; flex: 1; text-align: center; text-decoration: none; }
+  .receipt-page { background: #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 400px; width: 100%; }
+  .controls button, .controls a { padding: 14px 16px; border-radius: 10px; border: none; font-family: -apple-system, sans-serif; font-weight: 800; font-size: 15px; cursor: pointer; flex: 1; text-align: center; text-decoration: none; }
   .btn-print { background: #1e3a5f; color: white; }
   .btn-back { background: white; color: #1e3a5f; border: 1px solid #ddd !important; }
   .receipt { width: 80mm; background: white; padding: 10mm 4mm 6mm; color: #000; font-size: 12px; line-height: 1.4; font-family: 'Courier New', monospace; }
@@ -25,29 +26,25 @@
   .qr-box img { width: 110px; height: 110px; display: block; margin: 0 auto 6px; }
   .qr-box .qr-code-text { font-size: 10px; font-weight: 900; word-break: break-all; }
   .qr-box .qr-hint { font-size: 10px; color: #333; margin-top: 2px; }
-  .receipt-count { font-size: 11px; color: #666; text-align: center; }
   @media print {
-    .bulk-page { background: white; padding: 0; gap: 0; }
-    .controls, .receipt-count { display: none !important; }
-    .receipt { width: 80mm; padding: 0 0 6mm; page-break-after: always; }
-    .receipt:last-child { page-break-after: avoid; }
+    .receipt-page { background: white; padding: 0; gap: 0; }
+    .controls { display: none !important; }
+    .receipt { width: 80mm; padding: 0 0 6mm; }
     @page { size: 80mm auto; margin: 0; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="bulk-page">
-  <div class="controls">
-    <a class="btn-back" href="{% url 'receipt_list' %}">← Back</a>
-    <!-- DYNAMIC COUNT: shows number in THIS bulk -->
-    <button class="btn-print" onclick="window.print()">🖨 Print All ({{ count }})</button>
-  </div>
-  <div class="receipt-count">{{ count }} receipt{{ count|pluralize }} in this bulk • UGX {{ receipts|length }} to print</div>
+<div class="receipt-page">
 
-  {% for ctx in receipts %}
-  {% with repayment=ctx.repayment %}
+  <div class="controls">
+    <a class="btn-back" href="{% url 'transactions:receipt_list' %}">← Back</a>
+    <button class="btn-print" onclick="window.print()">🖨 Print</button>
+  </div>
+
   <div class="receipt">
+    <!-- Black RECEIPT bar REMOVED - was duplicate of Receipt No below -->
     <div class="center">
       <div>🏠</div>
       <div class="logo">LOANARCHIVE</div>
@@ -56,26 +53,30 @@
     <div class="divider"></div>
     <div class="center" style="font-weight:900; font-size:14px;">PAYMENT RECEIPT</div>
 
-    <div class="row"><span>Receipt No:</span><b>{{ ctx.verify_code }}</b></div>
+    <!-- ===== 1. IDENTITY ===== -->
+    <div class="row"><span>Receipt No:</span><b>{{ verify_code }}</b></div>
     <div class="row"><span>Date:</span><b>{{ repayment.collected_at|date:"d M Y, h:i A" }}</b></div>
-    <div class="row"><span>Client Name:</span><b>{{ ctx.client_name }}</b></div>
-    <div class="row"><span>Loan ID:</span><b>{{ ctx.loan_id }}</b></div>
-    <div class="row"><span>Loan Date:</span><b>{{ ctx.loan_date|date:"d M Y"|default:"-" }}</b></div>
-    <div class="row"><span>End Date:</span><b>{{ ctx.end_date|date:"d M Y"|default:"-" }}</b></div>
+    <div class="row"><span>Client Name:</span><b>{{ client_name }}</b></div>
+    <div class="row"><span>Loan ID:</span><b>{{ loan_id }}</b></div>
+    <div class="row"><span>Loan Date:</span><b>{{ loan_date|date:"d M Y"|default:"-" }}</b></div>
+    <div class="row"><span>End Date:</span><b>{{ end_date|date:"d M Y"|default:"-" }}</b></div>
 
     <div class="divider"></div>
+
+    <!-- ===== 2. MONEY ===== -->
     <div class="highlight-box">
-      <div class="row"><span>Loan Amount:</span><b>UGX {{ ctx.total_payable|floatformat:0 }}</b></div>
+      <div class="row"><span>Loan Amount:</span><b>UGX {{ total_payable|floatformat:0 }}</b></div>
       <div class="row"><span>Paid Today:</span><b>UGX {{ repayment.amount_paid|floatformat:0 }}</b></div>
-      <div class="row"><span>Paid So Far:</span><b>UGX {{ ctx.total_paid|floatformat:0 }}</b></div>
-      <div class="row balance"><span>Current Loan Balance:</span><b>UGX {{ ctx.balance|floatformat:0 }}</b></div>
+      <div class="row"><span>Paid So Far:</span><b>UGX {{ total_paid|floatformat:0 }}</b></div>
+      <div class="row balance"><span>Current Loan Balance:</span><b>UGX {{ balance|floatformat:0 }}</b></div>
     </div>
 
+    <!-- ===== 3. PROOF / COLLECTOR ===== -->
     <div class="row"><span>Received By:</span><b>{{ repayment.collected_by|default:"Admin" }}</b></div>
 
     <div class="qr-box">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data={{ ctx.qr_data|urlencode }}" alt="Scan to verify receipt">
-      <div class="qr-code-text">{{ ctx.verify_code }}</div>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data={{ qr_data|urlencode }}" alt="Scan to verify receipt">
+      <div class="qr-code-text">{{ verify_code }}</div>
       <div class="qr-hint">Scan to verify this receipt is real<br>or visit loanarchive.com/verify</div>
     </div>
 
@@ -83,9 +84,6 @@
     <div class="signature"><div>Client Signature</div><div>Admin Signature</div></div>
     <div class="footer">--------------------------------<br>Keep this receipt for your records.<br>For enquiries, contact LoanArchive<br>Powered by LoanArchive</div>
   </div>
-  {% endwith %}
-  {% empty %}
-  <p>No receipts in this bulk.</p>
-  {% endfor %}
 </div>
 {% endblock %}
+

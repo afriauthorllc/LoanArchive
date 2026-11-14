@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Scan Receipt - LoanArchive{% endblock title %}
+
+{% block extra-css %}
+<style>
+  /* Scoped to scanner page only - won't break your main.css */
+  .scanner-page { max-width: 460px; margin: 0 auto; padding: 4px 0 20px; color: #fff; }
+  .scanner-head { text-align: center; margin-bottom: 12px; }
+  .scanner-head h2 { font-size: 20px; font-weight: 700; color: #1e3a5f; margin: 0; }
+  .scanner-head p { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+  .scanner-box { background: #0f172a; border-radius: 16px; overflow: hidden; }
+  #reader { width: 100%; background: #000; min-height: 260px; }
+  #reader video { width: 100% !important; }
+  #reader__scan_region { background: #000; }
+  #reader button { background: #1e3a5f; color: #fff; border: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; margin: 6px; }
+  #reader select { padding: 10px; border-radius: 8px; width: 90%; margin: 6px; }
+  .scanner-hint { text-align: center; font-size: 13px; color: #cbd5e1; padding: 12px; line-height: 1.5; }
+
+  .controls-bar { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; padding: 0 12px 12px; }
+  .ctrl-btn { display: flex; align-items: center; gap: 8px; background: #334155; color: #fff; border: 1px solid #475569; padding: 12px 18px; border-radius: 999px; font-weight: 800; font-size: 14px; cursor: pointer; }
+  .ctrl-btn.on { background: #facc15; color: #000; border-color: #facc15; }
+  .ctrl-btn.muted { background: #475569; color: #cbd5e1; }
+  #torchBtn { display: none; }
+  .torch-note { font-size: 11px; color: #94a3b8; text-align: center; padding-bottom: 10px; display: none; }
+
+  .scanner-status { font-size: 12px; color: #b45309; margin-top: 10px; text-align: center; font-weight: 600; }
+  .scanner-error { background: #fee2e2; color: #991b1b; border-radius: 12px; padding: 12px; margin-top: 12px; font-size: 13px; display: none; text-align: center; line-height: 1.5; }
+  .scanner-result { background: #dcfce7; color: #166534; border-radius: 12px; padding: 14px; margin-top: 12px; text-align: center; display: none; font-size: 14px; }
+  .scanner-result b { word-break: break-all; }
+
+  .manual-card { background: #fff; color: #000; border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; margin-top: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+  .manual-card h3 { font-size: 15px; margin: 0 0 6px; }
+  .manual-card p { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+  .manual-card input { width: 100%; padding: 13px; border-radius: 10px; border: 1px solid #ddd; font-size: 15px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+  .manual-card .btn-verify { width: 100%; margin-top: 10px; padding: 13px; border: none; border-radius: 10px; background: #1e3a5f; color: #fff; font-weight: 800; font-size: 15px; cursor: pointer; }
+
+  .scanner-links { display: flex; gap: 10px; margin-top: 16px; }
+  .scanner-links a { flex: 1; text-align: center; background: #334155; color: #fff; text-decoration: none; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 14px; }
+</style>
+{% endblock extra-css %}
+
+{% block content %}
+<div class="scanner-page">
+  <div class="scanner-head">
+    <h2>📸 Scan Receipt</h2>
+    <p>Staff Scanner • Bugembe, Jinja</p>
+  </div>
+
+  <div class="scanner-box">
+    <div id="reader"></div>
+    <div class="scanner-hint">Point camera at the QR code at the bottom of the receipt.<br>Hold steady for 2 seconds.</div>
+
+    <div class="controls-bar">
+      <button id="torchBtn" class="ctrl-btn" type="button" onclick="toggleTorch()">
+        <span id="torchIcon">🔦</span>
+        <span id="torchLabel">Flash</span>
+      </button>
+      <button id="soundBtn" class="ctrl-btn" type="button" onclick="toggleSound()">
+        <span id="soundIcon">🔊</span>
+        <span id="soundLabel">Sound On</span>
+      </button>
+    </div>
+    <div class="torch-note" id="torchNote">Flash is ON - tap again to turn off</div>
+  </div>
+
+  <div class="scanner-status" id="status">Waiting for camera permission...</div>
+  <div class="scanner-error" id="errorBox"></div>
+  <div class="scanner-result" id="resultBox">Scanned: <b id="resultText"></b><br><span style="font-size:12px;">Opening verification...</span></div>
+
+  <div class="manual-card">
+    <h3>Camera not working? Type code manually</h3>
+    <p>Look under the QR on the receipt. Type the code like <b>RCT-003-T9K3W8</b></p>
+    <input id="manualInput" placeholder="e.g. RCT-003-T9K3W8" autocomplete="off">
+    <button class="btn-verify" type="button" onclick="verifyManual()">Verify Receipt →</button>
+  </div>
+
+  <div class="scanner-links">
+    {# Change these url names to match your urls.py #}
+    <a href="{% url 'receipt' %}">🧾 New Receipt</a>
+    <a href="{% url 'verify' %}">✅ Verify Page</a>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra-js %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+let scanner = null;
+let scanned = false;
+let torchOn = false;
+let soundOn = true;
+
+function showError(msg){
+  const el = document.getElementById('errorBox');
+  el.style.display = 'block';
+  el.innerHTML = msg;
+}
+function setStatus(t){ document.getElementById('status').textContent = t; }
+
+function extractCode(text){
+  text = text.trim();
+  try {
+    if(text.includes('code=')){
+      const u = new URL(text);
+      const c = u.searchParams.get('code');
+      if(c) return c;
+    }
+  } catch(e) {}
+  if(text.includes('/')){
+    const parts = text.split('/');
+    return parts[parts.length-1].split('?')[0];
+  }
+  return text;
+}
+
+// ===== BEEP + VIBRATE =====
+function playBeep(){
+  if(!soundOn) {
+    if(navigator.vibrate) navigator.vibrate(100);
+    return;
+  }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'square';
+    gain.gain.value = 0.15;
+    osc.start();
+    setTimeout(()=> osc.stop(), 120);
+    setTimeout(()=>{
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.frequency.value = 880;
+      osc2.type = 'square';
+      gain2.gain.value = 0.15;
+      osc2.start();
+      setTimeout(()=> osc2.stop(), 150);
+    }, 180);
+  } catch(e){}
+  if(navigator.vibrate) navigator.vibrate([100, 50, 150]);
+}
+
+function toggleSound(){
+  soundOn = !soundOn;
+  const btn = document.getElementById('soundBtn');
+  document.getElementById('soundIcon').textContent = soundOn ? '🔊' : '🔇';
+  document.getElementById('soundLabel').textContent = soundOn ? 'Sound On' : 'Sound Off';
+  btn.classList.toggle('muted', !soundOn);
+  if(soundOn) playBeep();
+}
+// ==========================
+
+function onScanSuccess(decodedText){
+  if(scanned) return;
+  scanned = true;
+  playBeep();
+  const code = extractCode(decodedText);
+  document.getElementById('resultBox').style.display = 'block';
+  document.getElementById('resultText').textContent = code;
+  setStatus('✅ Scanned! Opening verification...');
+  if(torchOn) { try { scanner.applyVideoConstraints({ advanced: [{ torch: false }] }); } catch(e){} }
+  if(scanner){
+    scanner.stop().catch(()=>{}).then(()=> goToVerify(code));
+    setTimeout(()=> goToVerify(code), 900);
+  } else {
+    goToVerify(code);
+  }
+}
+
+function goToVerify(code){
+  // Uses your Django verify URL - change 'verify' if your url name is different
+  window.location.href = "{% url 'verify' %}?code=" + encodeURIComponent(code);
+}
+
+function verifyManual(){
+  const v = document.getElementById('manualInput').value.trim();
+  if(!v){ alert('Please type the receipt code first'); return; }
+  goToVerify(v);
+}
+
+// ===== FLASHLIGHT =====
+function checkTorchSupport(){
+  try {
+    if(!scanner) return;
+    const caps = scanner.getRunningTrackCapabilities();
+    if(caps && caps.torch){
+      document.getElementById('torchBtn').style.display = 'flex';
+    } else {
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      if(isAndroid) document.getElementById('torchBtn').style.display = 'flex';
+    }
+  } catch(e){
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if(isAndroid) document.getElementById('torchBtn').style.display = 'flex';
+  }
+}
+
+async function toggleTorch(){
+  if(!scanner) return;
+  torchOn = !torchOn;
+  try {
+    await scanner.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+  } catch(e){
+    try { await scanner.applyVideoConstraints({ torch: torchOn }); } catch(e2){}
+  }
+  updateTorchUI();
+}
+
+function updateTorchUI(){
+  const btn = document.getElementById('torchBtn');
+  const icon = document.getElementById('torchIcon');
+  const label = document.getElementById('torchLabel');
+  const note = document.getElementById('torchNote');
+  if(torchOn){
+    btn.classList.add('on');
+    icon.textContent = '💡';
+    label.textContent = 'Flash On';
+    note.style.display = 'block';
+    setStatus('💡 Flash ON - point at QR code');
+  } else {
+    btn.classList.remove('on');
+    icon.textContent = '🔦';
+    label.textContent = 'Flash';
+    note.style.display = 'none';
+    setStatus('📸 Camera on - point at QR code');
+  }
+}
+// ======================
+
+function startScanner(){
+  if(!window.Html5Qrcode){
+    showError('Scanner library failed to load. Check internet and reload.<br>Use manual entry below for now.');
+    setStatus('Library not loaded - use manual entry');
+    return;
+  }
+  scanner = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+  scanner.start({ facingMode: "environment" }, config, onScanSuccess, ()=>{})
+  .then(()=>{
+    setStatus('📸 Camera on - point at QR code');
+    checkTorchSupport();
+  })
+  .catch(err=>{
+    Html5Qrcode.getCameras().then(cameras=>{
+      if(cameras && cameras.length){
+        scanner.start(cameras[0].id, config, onScanSuccess, ()=>{})
+        .then(()=>{ setStatus('📸 Camera on - point at QR code'); checkTorchSupport(); })
+        .catch(e=> showError('Camera blocked. Please allow camera permission in browser settings and reload.<br>Use manual entry below.'));
+      } else {
+        showError('No camera found on this device.<br>Use manual entry below.');
+        setStatus('No camera - use manual entry');
+      }
+    }).catch(()=> showError('Camera permission denied. Allow camera and reload.<br>Use manual entry below.'));
+  });
+}
+
+document.getElementById('manualInput').addEventListener('keydown', e=>{ if(e.key==='Enter') verifyManual(); });
+document.addEventListener('touchstart', function unlockAudio(){
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); } catch(e){}
+  document.removeEventListener('touchstart', unlockAudio);
+}, { once: true });
+
+startScanner();
+</script>
+{% endblock extra-js %}
+

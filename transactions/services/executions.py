@@ -34,6 +34,7 @@ def bulk_repayment_submit(request):
         total = Decimal('0')
         errors = []
         breakdown = []  # for your success modal
+        created_ids = []  # <-- 1. NEW: collect IDs for View Receipts
 
         with transaction.atomic():
             for item in repayments:
@@ -58,13 +59,15 @@ def bulk_repayment_submit(request):
                     except:
                         pass
 
-                    Repayment.objects.create(
+                    # <-- 2. CHANGED: capture the created object
+                    repayment = Repayment.objects.create(
                         book_number=str(item.get('book_number','')).strip(),
                         loan_id=loan_id,
                         amount_paid=amount,
                         payment_mode=item.get('payment_mode', 'CASH'),
                         collected_by=request.user
                     )
+                    created_ids.append(repayment.id)  # <-- 3. NEW: save its ID
                     
                     saved += 1
                     total += amount
@@ -88,18 +91,19 @@ def bulk_repayment_submit(request):
                 'total_formatted': f"{total:,.0f}",  # 38,000
                 'message': f'{saved} payments recorded • UGX {total:,.0f} total',
                 'breakdown': breakdown,  # use this to render the list in modal
+                'ids': created_ids,  # <-- 4. NEW: [42] or [42,43,44]
                 'errors': errors
             })
         
         # Fallback non-JS
         messages.success(request, f'{saved} payments recorded • UGX {total:,.0f} total')
-        return JsonResponse({'success': True, 'saved': saved})
+        return JsonResponse({'success': True, 'saved': saved, 'ids': created_ids})
 
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
-
+            
 @login_required
 def edit_repayment(request, pk):
     payment = get_object_or_404(Repayment.objects.select_related('loan', 'loan__client'), pk=pk)

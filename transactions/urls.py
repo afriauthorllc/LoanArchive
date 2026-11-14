@@ -21,6 +21,8 @@ urlpatterns = [
     path('verify/', views.verify, name='verify'),
     path('receipts/', views.receipt_list, name='receipt_list'),
     path('receipt/<str:verify_code>/', views.receipt, name='receipt'),
-    path('receipts/bulk/', views.bulk_print_receipts, name='bulk_print_receipts'),
+    #path('receipts/bulk/', views.bulk_print_receipts, name='bulk_print_receipts'),
+    path('receipts/bulk/', views.bulk_receipts, name='bulk_receipts'),
+    path('receipts/<int:pk>/', views.receipt_detail, name='receipt_detail'),
     
 ]

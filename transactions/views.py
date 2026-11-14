@@ -221,3 +221,25 @@ def bulk_print_receipts(request):
         'count': len(receipt_list),  # <-- this drives the button
     })
     
+from django.shortcuts import render
+from transactions.models import Repayment
+
+@login_required
+def bulk_receipts(request):
+    ids_raw = request.GET.get('ids', '')
+    # ids=6 or ids=6,7,8
+    try:
+        ids = [int(x.strip()) for x in ids_raw.split(',') if x.strip()]
+    except ValueError:
+        ids = []
+
+    # FIXED: use pk__in, not id__in - your PK is ID
+    repayments = Repayment.objects.select_related(
+        'loan', 'loan__client', 'branch', 'collected_by'
+    ).filter(pk__in=ids).order_by('book_number')
+
+    return render(request, 'transactions/bulk_receipts.html', {
+        'repayments': repayments,
+        'ids': ids,
+    })
+    

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Receipt {{ receipt_no }} - LoanArchive{% endblock %}
+{% block title %}Bulk Receipts - LoanArchive{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -43,6 +43,7 @@
     <button class="btn-print" onclick="window.print()">🖨 Print</button>
   </div>
 
+  {% for receipt in receipts %}
   <div class="receipt">
     <!-- Black RECEIPT bar REMOVED - was duplicate of Receipt No below -->
     <div class="center">
@@ -54,29 +55,29 @@
     <div class="center" style="font-weight:900; font-size:14px;">PAYMENT RECEIPT</div>
 
     <!-- ===== 1. IDENTITY ===== -->
-    <div class="row"><span>Receipt No:</span><b>{{ verify_code }}</b></div>
-    <div class="row"><span>Date:</span><b>{{ repayment.collected_at|date:"d M Y, h:i A" }}</b></div>
-    <div class="row"><span>Client Name:</span><b>{{ client_name }}</b></div>
-    <div class="row"><span>Loan ID:</span><b>{{ loan_id }}</b></div>
-    <div class="row"><span>Loan Date:</span><b>{{ loan_date|date:"d M Y"|default:"-" }}</b></div>
-    <div class="row"><span>End Date:</span><b>{{ end_date|date:"d M Y"|default:"-" }}</b></div>
+    <div class="row"><span>Receipt No:</span><b>{{ receipt.verify_code }}</b></div>
+    <div class="row"><span>Date:</span><b>{{ receipt.repayment.collected_at|date:"d M Y, h:i A"  }}</b></div>
+    <div class="row"><span>Client Name:</span><b>{{ receipt.client_name }}</b></div>
+    <div class="row"><span>Loan ID:</span><b>{{ receipt.loan_id }}</b></div>
+    <div class="row"><span>Loan Date:</span><b>{{ receipt.loan_date|date:"d M Y"|default:"-"  }}</b></div>
+    <div class="row"><span>End Date:</span><b>{{ receipt.end_date|date:"d M Y"|default:"-"  }}</b></div>
 
     <div class="divider"></div>
 
     <!-- ===== 2. MONEY ===== -->
     <div class="highlight-box">
-      <div class="row"><span>Loan Amount:</span><b>UGX {{ total_payable|floatformat:0 }}</b></div>
-      <div class="row"><span>Paid Today:</span><b>UGX {{ repayment.amount_paid|floatformat:0 }}</b></div>
-      <div class="row"><span>Paid So Far:</span><b>UGX {{ total_paid|floatformat:0 }}</b></div>
-      <div class="row balance"><span>Current Loan Balance:</span><b>UGX {{ balance|floatformat:0 }}</b></div>
+      <div class="row"><span>Loan Amount:</span><b>UGX {{ receipt.total_payable|floatformat:0  }}</b></div>
+      <div class="row"><span>Paid Today:</span><b>UGX {{ receipt.repayment.amount_paid|floatformat:0  }}</b></div>
+      <div class="row"><span>Paid So Far:</span><b>UGX {{ receipt.total_paid|floatformat:0  }}</b></div>
+      <div class="row balance"><span>Current Loan Balance:</span><b>UGX {{ receipt.balance|floatformat:0  }}</b></div>
     </div>
 
     <!-- ===== 3. PROOF / COLLECTOR ===== -->
-    <div class="row"><span>Received By:</span><b>{{ repayment.collected_by|default:"Admin" }}</b></div>
+    <div class="row"><span>Received By:</span><b>{{ receipt.repayment.collected_by|default:"Admin"  }}</b></div>
 
     <div class="qr-box">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data={{ qr_data|urlencode }}" alt="Scan to verify receipt">
-      <div class="qr-code-text">{{ verify_code }}</div>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data={{ receipt.qr_data|urlencode  }}" alt="Scan to verify receipt">
+      <div class="qr-code-text">{{ receipt.verify_code }}</div>
       <div class="qr-hint">Scan to verify this receipt is real<br>or visit loanarchive.com/verify</div>
     </div>
 
@@ -84,6 +85,9 @@
     <div class="signature"><div>Client Signature</div><div>Admin Signature</div></div>
     <div class="footer">--------------------------------<br>Keep this receipt for your records.<br>For enquiries, contact LoanArchive<br>Powered by LoanArchive</div>
   </div>
+  {% empty %}
+  <p>No receipts found.</p>
+  {% endfor %}
 </div>
 {% endblock %}
 

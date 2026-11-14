@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bulk Receipts - LoanArchive</title>
+{% extends "base.html" %}
+{% block extra_css %}
 <style>
+
     * { box-sizing: border-box; }
   body { margin: 0; background: #e5e7eb; font-family: -apple-system, sans-serif; }
 
@@ -18,11 +15,11 @@
   .logo { font-size: 22px; font-weight: 900; letter-spacing: 1px; }
   .sub { font-size: 10px; color: #333; }
   .divider { border-top: 1px dashed #000; margin: 8px 0; }
-  .row { display: flex; justify-content: space-between; padding: 2px 0; gap: 8px; }
-  .row span:first-child { color: #333; flex-shrink: 0; }
-  .row b { text-align: right; word-break: break-word; }
+  .r-row { display: flex; justify-content: space-between; padding: 2px 0; gap: 8px; }
+  .r-row span:first-child { color: #333; flex-shrink: 0; }
+  .r-row b { text-align: right; word-break: break-word; }
   .highlight-box { border: 1px solid #000; padding: 8px; margin: 8px 0; }
-  .highlight-box .row.balance { font-size: 15px; font-weight: 900; border-top: 1px dashed #000; padding-top: 6px; margin-top: 6px; }
+  .highlight-box .r-row.balance { font-size: 15px; font-weight: 900; border-top: 1px dashed #000; padding-top: 6px; margin-top: 6px; }
   .footer { font-size: 10px; text-align: center; margin-top: 10px; line-height: 1.5; }
   .signature { display: flex; justify-content: space-between; margin-top: 18px; font-size: 10px; }
   .signature div { border-top: 1px solid #000; padding-top: 4px; width: 45%; text-align: center; }
@@ -32,31 +29,30 @@
   .qr-box .qr-hint { font-size: 10px; color: #333; margin-top: 2px; }
   
 
-  /* --- Screen: centre receipts like paper --- */
+  
   .receipt-page { background: #e5e7eb; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
   .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 400px; width: 100%; }
   .controls button, .controls a { padding: 14px 16px; border-radius: 10px; border: none; font-weight: 800; font-size: 15px; cursor: pointer; flex: 1; text-align: center; text-decoration: none; }
   .btn-print { background: #1e3a5f; color: white; }
   .btn-back { background: white; color: #1e3a5f; border: 1px solid #ddd !important; }
 
-  /* --- Print: ONLY receipts, 80mm, 1 receipt = 1 page --- */
+  
+  
+
   @media print {
-    html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
-    .controls { display: none !important; }
+    header, nav, footer, aside, .header, .navbar, .topbar, .sidebar,
+    .bottom-nav, .bottom_nav, .app-nav, .app-header, .app-footer,
+    .site-header, .site-footer, .main-nav, .mobile-nav, .controls { display: none !important; }
+    html, body, main, .container, .content, .page, #app, #root { background: white !important; margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: none !important; box-shadow: none !important; }
     .receipt-page { background: white !important; padding: 0 !important; margin: 0 !important; gap: 0 !important; display: block !important; }
-    .receipt {
-      width: 80mm !important; max-width: 80mm !important;
-      margin: 0 auto !important; padding: 0 4mm 6mm !important;
-      background: white !important; color: #000 !important;
-      box-shadow: none !important; border: none !important;
-      page-break-after: always !important; break-after: page !important;
-    }
+    .receipt { width: 80mm !important; max-width: 80mm !important; margin: 0 auto !important; padding: 0 4mm 6mm !important; background: white !important; color: #000 !important; box-shadow: none !important; border: none !important; page-break-after: always !important; break-after: page !important; }
     .receipt:last-child { page-break-after: auto !important; break-after: auto !important; }
     @page { size: 80mm auto; margin: 0; }
   }
 </style>
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
 <div class="receipt-page">
 
   <div class="controls">
@@ -76,25 +72,25 @@
     <div class="center" style="font-weight:900; font-size:14px;">PAYMENT RECEIPT</div>
 
     <!-- ===== 1. IDENTITY ===== -->
-    <div class="row"><span>Receipt No:</span><b>{{ receipt.verify_code }}</b></div>
-    <div class="row"><span>Date:</span><b>{{ receipt.repayment.collected_at|date:"d M Y, h:i A"  }}</b></div>
-    <div class="row"><span>Client Name:</span><b>{{ receipt.client_name }}</b></div>
-    <div class="row"><span>Loan ID:</span><b>{{ receipt.loan_id }}</b></div>
-    <div class="row"><span>Loan Date:</span><b>{{ receipt.loan_date|date:"d M Y"|default:"-"  }}</b></div>
-    <div class="row"><span>End Date:</span><b>{{ receipt.end_date|date:"d M Y"|default:"-"  }}</b></div>
+    <div class="r-row"><span>Receipt No:</span><b>{{ receipt.verify_code }}</b></div>
+    <div class="r-row"><span>Date:</span><b>{{ receipt.repayment.collected_at|date:"d M Y, h:i A"  }}</b></div>
+    <div class="r-row"><span>Client Name:</span><b>{{ receipt.client_name }}</b></div>
+    <div class="r-row"><span>Loan ID:</span><b>{{ receipt.loan_id }}</b></div>
+    <div class="r-row"><span>Loan Date:</span><b>{{ receipt.loan_date|date:"d M Y"|default:"-"  }}</b></div>
+    <div class="r-row"><span>End Date:</span><b>{{ receipt.end_date|date:"d M Y"|default:"-"  }}</b></div>
 
     <div class="divider"></div>
 
     <!-- ===== 2. MONEY ===== -->
     <div class="highlight-box">
-      <div class="row"><span>Loan Amount:</span><b>UGX {{ receipt.total_payable|floatformat:0  }}</b></div>
-      <div class="row"><span>Paid Today:</span><b>UGX {{ receipt.repayment.amount_paid|floatformat:0  }}</b></div>
-      <div class="row"><span>Paid So Far:</span><b>UGX {{ receipt.total_paid|floatformat:0  }}</b></div>
-      <div class="row balance"><span>Current Loan Balance:</span><b>UGX {{ receipt.balance|floatformat:0  }}</b></div>
+      <div class="r-row"><span>Loan Amount:</span><b>UGX {{ receipt.total_payable|floatformat:0  }}</b></div>
+      <div class="r-row"><span>Paid Today:</span><b>UGX {{ receipt.repayment.amount_paid|floatformat:0  }}</b></div>
+      <div class="r-row"><span>Paid So Far:</span><b>UGX {{ receipt.total_paid|floatformat:0  }}</b></div>
+      <div class="r-row balance"><span>Current Loan Balance:</span><b>UGX {{ receipt.balance|floatformat:0  }}</b></div>
     </div>
 
     <!-- ===== 3. PROOF / COLLECTOR ===== -->
-    <div class="row"><span>Received By:</span><b>{{ receipt.repayment.collected_by|default:"Admin"  }}</b></div>
+    <div class="r-row"><span>Received By:</span><b>{{ receipt.repayment.collected_by|default:"Admin"  }}</b></div>
 
     <div class="qr-box">
       <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data={{ receipt.qr_data|urlencode  }}" alt="Scan to verify receipt">
@@ -110,5 +106,4 @@
   <p>No receipts found.</p>
   {% endfor %}
 </div>
-</body>
-</html>
+{% endblock %}
